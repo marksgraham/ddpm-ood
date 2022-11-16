@@ -16,6 +16,13 @@ You can also build the docker image
 cd docker/
 bash create_docker_image.sh
 ```
+
+### Set-up paths
+```
+data_root=/root/for/downloaded/dataset
+output_root/root/for/saved/models
+```
+
 ### Download and process datasets
 ```bash
 python get_datasets.py --data_root='/desired/path/to/data'
@@ -24,21 +31,20 @@ N.B. If the error "The daily quota of the file img_align_celeba.zip is exceeded 
 you need to download these files manually from the GDrive and place them in data_root/CelebA/raw/, see 
 [here](https://github.com/pytorch/vision/issues/1920#issuecomment-852237902). You can then run
 ```bash
-python get_datasets.py --data_root='/desired/path/to/data'--download_celebA=False
+python get_datasets.py --data_root=${data_root} --download_celeba=False
 ```
-
 ### Train models
 Examples here are given for using FashionMNIST as the in-distribution dataset. Commands for other datasets are given 
 in [README_additional.md](README_additional.md).
 
 ```bash
 python train.py \
---output_dir=/home/mark/data_drive/ddpm-ood/output \
+--output_dir=${output_root} \
 --model_name=fashionmnist \
---training_ids=/home/mark/data_drive/ddpm-ood/data/data_splits/FashionMNIST_train.csv \
---validation_ids=/home/mark/data_drive/ddpm-ood/data/data_splits/FashionMNIST_val.csv \
+--training_ids=${data_root}/data_splits/FashionMNIST_train.csv \
+--validation_ids=${data_root}/data_splits/FashionMNIST_val.csv \
 --is_grayscale=1 \
---config_diffusion_file=/home/mark/projects/wellcome/diffusion/ddpm-ood/src/configs/diffusion/diffusion_grayscale.yaml \
+--config_diffusion_file=src/configs/diffusion/diffusion_grayscale.yaml \
 --n_epochs=300
 ```
 
@@ -46,13 +52,13 @@ python train.py \
 
 ```bash
 python reconstruct.py \
---output_dir=/home/mark/data_drive/ddpm-ood/output \
+--output_dir=${output_root} \
 --model_name=fashionmnist \
---validation_ids=/home/mark/data_drive/ddpm-ood/data/data_splits/FashionMNIST_val.csv \
---in_ids=/home/mark/data_drive/ddpm-ood/data/data_splits/FashionMNIST_test.csv \
---out_ids=/home/mark/data_drive/ddpm-ood/data/data_splits/MNIST_test.csv,/home/mark/data_drive/ddpm-ood/data/data_splits/MNIST_vflip_test.csv,/home/mark/data_drive/ddpm-ood/data/data_splits/MNIST_hflip_test.csv \
+--validation_ids=${data_root}/data_splits/FashionMNIST_val.csv \
+--in_ids=${data_root}/data_splits/FashionMNIST_test.csv \
+--out_ids=${data_root}/data_splits/MNIST_test.csv,${data_root}/data_splits/MNIST_vflip_test.csv,${data_root}/data_splits/MNIST_hflip_test.csv \
 --is_grayscale=1 \
---config_diffusion_file=/home/mark/projects/wellcome/diffusion/ddpm-ood/src/configs/diffusion/diffusion_grayscale.yaml \
+--config_diffusion_file=src/configs/diffusion/diffusion_grayscale.yaml \
 --num_inference_steps=100 \
 --inference_skip_factor=16 \
 --run_val=1 \
@@ -66,9 +72,9 @@ The `--inference_skip_factor` controls the number of reconstructions performed. 
 
 
 ### Classify samples as OOD
-```
+```bash
 python ood_detection.py \
---output_dir=/home/mark/data_drive/ddpm-ood/output \
+--output_dir=${output_root} \
 --model_name=fashionmnist
 ```
 
