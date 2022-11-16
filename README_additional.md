@@ -1,0 +1,84 @@
+## Commands for running codebase on other datasets
+
+### CIFAR10
+
+```bash
+python train.py \
+--output_dir=/home/mark/data_drive/ddpm-ood/output \
+--model_name=cifar10 \
+--training_ids=/home/mark/data_drive/ddpm-ood/data/data_splits/CIFAR0_train.csv \
+--validation_ids=/home/mark/data_drive/ddpm-ood/data/data_splits/CIFAR0_val.csv \
+--is_grayscale=0 \
+--config_diffusion_file=/home/mark/projects/wellcome/diffusion/ddpm-ood/src/configs/diffusion/diffusion_colour.yaml \
+--n_epochs=300
+```
+```bash
+python reconstruct.py \
+--output_dir=/home/mark/data_drive/ddpm-ood/output \
+--model_name=cifar10 \
+--validation_ids=/home/mark/data_drive/ddpm-ood/data/data_splits/CIFAR10_val.csv \
+--in_ids=/home/mark/data_drive/ddpm-ood/data/data_splits/CIFAR10_test.csv \
+--out_ids=/home/mark/data_drive/ddpm-ood/data/data_splits/SVHN_test.csv,/home/mark/data_drive/ddpm-ood/data/data_splits/CelebA_test.csv,,/home/mark/data_drive/ddpm-ood/data/data_splits/CIFAR10_vflip_test.csv,/home/mark/data_drive/ddpm-ood/data/data_splits/CIFAR10_hflip_test.csv \
+--is_grayscale=1 \
+--config_diffusion_file=/home/mark/projects/wellcome/diffusion/ddpm-ood/src/configs/diffusion/diffusion_grayscale.yaml \
+--num_inference_steps=100 \
+--inference_skip_factor=16 \
+--run_val=1 \
+--run_in=1 \
+--run_out=1
+```
+### CelebA
+
+```bash
+python train.py \
+--output_dir=/home/mark/data_drive/ddpm-ood/output \
+--model_name=celeba \
+--training_ids=/home/mark/data_drive/ddpm-ood/data/data_splits/CelebA_train.csv \
+--validation_ids=/home/mark/data_drive/ddpm-ood/data/data_splits/CelebA_val.csv \
+--is_grayscale=0 \
+--config_diffusion_file=/home/mark/projects/wellcome/diffusion/ddpm-ood/src/configs/diffusion/diffusion_colour.yaml \
+--n_epochs=300
+```
+```bash
+python reconstruct.py \
+--output_dir=/home/mark/data_drive/ddpm-ood/output \
+--model_name=celeba \
+--validation_ids=/home/mark/data_drive/ddpm-ood/data/data_splits/CelebA_val.csv \
+--in_ids=/home/mark/data_drive/ddpm-ood/data/data_splits/CelebA_test.csv \
+--out_ids=/home/mark/data_drive/ddpm-ood/data/data_splits/SVHN_test.csv,/home/mark/data_drive/ddpm-ood/data/data_splits/CIFAR10_test.csv,/home/mark/data_drive/ddpm-ood/data/data_splits/CelebA_vflip_test.csv,/home/mark/data_drive/ddpm-ood/data/data_splits/CelebA_hflip_test.csv \
+--is_grayscale=1 \
+--config_diffusion_file=/home/mark/projects/wellcome/diffusion/ddpm-ood/src/configs/diffusion/diffusion_grayscale.yaml \
+--num_inference_steps=100 \
+--inference_skip_factor=16 \
+--run_val=1 \
+--run_in=1 \
+--run_out=1
+```
+
+### SVHN
+
+```bash
+python train.py \
+--output_dir=/home/mark/data_drive/ddpm-ood/output \
+--model_name=svhn \
+--training_ids=/home/mark/data_drive/ddpm-ood/data/data_splits/SVHN_train.csv \
+--validation_ids=/home/mark/data_drive/ddpm-ood/data/data_splits/SVHN_val.csv \
+--is_grayscale=0 \
+--config_diffusion_file=/home/mark/projects/wellcome/diffusion/ddpm-ood/src/configs/diffusion/diffusion_colour.yaml \
+--n_epochs=300
+```
+```bash
+python reconstruct.py \
+--output_dir=/home/mark/data_drive/ddpm-ood/output \
+--model_name=svhn \
+--validation_ids=/home/mark/data_drive/ddpm-ood/data/data_splits/SVHN_val.csv \
+--in_ids=/home/mark/data_drive/ddpm-ood/data/data_splits/SVHN_test.csv \
+--out_ids=/home/mark/data_drive/ddpm-ood/data/data_splits/CelebA_test.csv,/home/mark/data_drive/ddpm-ood/data/data_splits/CIFAR10_test.csv,/home/mark/data_drive/ddpm-ood/data/data_splits/SVHN_vflip_test.csv,/home/mark/data_drive/ddpm-ood/data/data_splits/SVHN_hflip_test.csv \
+--is_grayscale=1 \
+--config_diffusion_file=/home/mark/projects/wellcome/diffusion/ddpm-ood/src/configs/diffusion/diffusion_grayscale.yaml \
+--num_inference_steps=100 \
+--inference_skip_factor=16 \
+--run_val=1 \
+--run_in=1 \
+--run_out=1
+```
