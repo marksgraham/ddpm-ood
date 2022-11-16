@@ -1,8 +1,9 @@
 #  Denoising Diffusion Models for Out-of-Distribution Detection
 
-This repo does..... 
+This repo does provides code for the paper 'Denoising Diffusion Models for Out-of-Distribution Detection'.
 
-It is based on the excellent LDM repo - many thanks!
+It is based on the excellent [Latent Diffusion repository](https://github.com/CompVis/latent-diffusion) 
+(although the models in this work are not latent diffusion models) - many thanks!
 ## Running the code
 
 ### Install
@@ -27,7 +28,8 @@ python get_datasets.py --data_root='/desired/path/to/data'--download_celebA=Fals
 ```
 
 ### Train models
-
+Examples here are given for using FashionMNIST as the in-distribution dataset. Commands for other datasets are given 
+in [README_additional.md](README_additional.md).
 
 ```bash
 python train.py \
