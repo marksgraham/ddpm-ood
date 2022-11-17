@@ -81,8 +81,6 @@ to reproduce results in Supplementary Table 4 (for max_t=1000).
 N.B. For a quicker run, you can choose to only reconstruct a subset of the validation set with e.g. `--first_n_val=1000` 
 or a subset of the in/out datasets with `--first_n=1000`
 
-The `--inference_skip_factor` controls the number of reconstructions performed. For easy reference, you can use this look-up to match
-
 
 ### Classify samples as OOD
 ```bash
