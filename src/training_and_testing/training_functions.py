@@ -16,7 +16,7 @@ def get_lr(optimizer):
         return param_group['lr']
 
 
-def train_3d_ldm(
+def train_ldm(
         model,
         vqvae,
         start_epoch: int,
@@ -49,7 +49,7 @@ def train_3d_ldm(
     # print(f"epoch {start_epoch} val loss: {val_loss:.4f}")
 
     for epoch in range(start_epoch, n_epochs):
-        train_epoch_3d_ldm(
+        train_epoch_ldm(
             model=model,
             vqvae=vqvae,
             loader=train_loader,
@@ -61,7 +61,7 @@ def train_3d_ldm(
             quick_test=quick_test
         )
         if (epoch + 1) % eval_freq == 0:
-            val_loss, nll_per_dim = eval_3d_ldm(
+            val_loss, nll_per_dim = eval_ldm(
                 model=model,
                 vqvae=vqvae,
                 loader=val_loader,
@@ -106,7 +106,7 @@ def train_3d_ldm(
     return val_loss
 
 
-def train_epoch_3d_ldm(
+def train_epoch_ldm(
         model,
         vqvae,
         loader,
@@ -131,32 +131,6 @@ def train_epoch_3d_ldm(
                 e = vqvae(img.to(device),get_ldm_inputs=True)
                 e_padded = raw_vqvae.pad_ldm_inputs(e)
 
-                # if epoch == 0:
-                #     if step == 0:
-                #         print('Plotting check of data for first epoch.')
-                #     import matplotlib.pyplot as plt
-                #     from pathlib import Path
-                #     batch_out_dir = Path(writer.logdir).parent / 'batch_check'
-                #     batch_out_dir.mkdir(exist_ok=True)
-                #     bs = img.shape[0]
-                #     tiles = min(100,np.floor(np.sqrt(bs)).astype(int))
-                #     fig, ax = plt.subplots(tiles, tiles, figsize=(tiles * 3, tiles * 3))
-                #     if e_padded.ndim == 5:
-                #         for i in range(tiles**2):
-                #             ax[i // tiles, i % tiles].imshow(
-                #                 e_padded[i, 0, :, :,e_padded.shape[-1]//2].detach().cpu().numpy(),
-                #                 cmap='gray')
-                #             ax[i // tiles, i % tiles].axis('off')
-                #     else:
-                #         for i in range(tiles**2):
-                #             ax[i // tiles, i % tiles].imshow(np.transpose(
-                #                 e_padded[i, :, :, :].detach().cpu().numpy(),
-                #                 (1,2,0)),
-                #                 cmap='gray')
-                #             ax[i // tiles, i % tiles].axis('off')
-                #     #plt.show()
-                #     plt.savefig(batch_out_dir / f'batch_check_{step}.png')
-                #     plt.close()
             loss, loss_dict = model(e_padded, crop_function=raw_vqvae.crop_ldm_inputs)
             loss = loss.mean()
             # update sampler
@@ -188,7 +162,7 @@ def train_epoch_3d_ldm(
 
 
 @torch.no_grad()
-def eval_3d_ldm(
+def eval_ldm(
         model,
         vqvae,
         loader,

@@ -13,7 +13,7 @@ from omegaconf import OmegaConf
 from src.models.vqvae_2d import BaselineVQVAE2D
 from src.models.vqvae_dummy import DummyVQVAE
 from src.models.ddpm_2d import DDPM
-from src.training_and_testing.training_functions import train_3d_ldm
+from src.training_and_testing.training_functions import train_ldm
 from src.training_and_testing.util import get_training_data_loader
 
 warnings.filterwarnings("ignore")
@@ -127,7 +127,7 @@ def main(args):
 
     # Train model
     print(f"Starting Training")
-    val_loss = train_3d_ldm(
+    val_loss = train_ldm(
         model=diffusion,
         vqvae=vqvae,
         start_epoch=start_epoch,
