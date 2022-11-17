@@ -6,12 +6,13 @@
 python train.py \
 --output_dir=${output_root} \
 --model_name=cifar10 \
---training_ids=${data_root}/data_splits/CIFAR0_train.csv \
---validation_ids=${data_root}/data_splits/CIFAR0_val.csv \
+--training_ids=${data_root}/data_splits/CIFAR10_train.csv \
+--validation_ids=${data_root}/data_splits/CIFAR10_val.csv \
 --is_grayscale=0 \
 --config_diffusion_file=src/configs/diffusion/diffusion_colour.yaml \
 --n_epochs=300
 ```
+
 ```bash
 python reconstruct.py \
 --output_dir=${output_root} \
@@ -27,6 +28,13 @@ python reconstruct.py \
 --run_in=1 \
 --run_out=1
 ```
+
+```bash
+python ood_detection.py \
+--output_dir=${output_root} \
+--model_name=cifar10
+```
+
 ### CelebA
 
 ```bash
@@ -39,6 +47,7 @@ python train.py \
 --config_diffusion_file=src/configs/diffusion/diffusion_colour.yaml \
 --n_epochs=300
 ```
+
 ```bash
 python reconstruct.py \
 --output_dir=${output_root} \
@@ -55,6 +64,11 @@ python reconstruct.py \
 --run_out=1
 ```
 
+```bash
+python ood_detection.py \
+--output_dir=${output_root} \
+--model_name=celeba
+```
 ### SVHN
 
 ```bash
@@ -67,6 +81,7 @@ python train.py \
 --config_diffusion_file=src/configs/diffusion/diffusion_colour.yaml \
 --n_epochs=300
 ```
+
 ```bash
 python reconstruct.py \
 --output_dir=${output_root} \
@@ -81,4 +96,10 @@ python reconstruct.py \
 --run_val=1 \
 --run_in=1 \
 --run_out=1
+```
+
+```bash
+python ood_detection.py \
+--output_dir=${output_root} \
+--model_name=svhn
 ```
