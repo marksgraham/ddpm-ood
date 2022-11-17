@@ -3,7 +3,7 @@
 This repo does provides code for the paper 'Denoising Diffusion Models for Out-of-Distribution Detection'.
 
 It is based on the excellent [Latent Diffusion repository](https://github.com/CompVis/latent-diffusion) 
-(although the models in this work are not latent diffusion models) - many thanks!
+(although the models in this work are vanilla diffusion models) - many thanks!
 ## Running the code
 
 ### Install
@@ -25,7 +25,7 @@ output_root/root/for/saved/models
 
 ### Download and process datasets
 ```bash
-python get_datasets.py --data_root='/desired/path/to/data'
+python get_datasets.py --data_root=${data_root}
 ```
 N.B. If the error "The daily quota of the file img_align_celeba.zip is exceeded and it can't be downloaded." is thrown,
 you need to download these files manually from the GDrive and place them in data_root/CelebA/raw/, see 
@@ -46,6 +46,10 @@ python train.py \
 --is_grayscale=1 \
 --config_diffusion_file=src/configs/diffusion/diffusion_grayscale.yaml \
 --n_epochs=300
+```
+You can track experiments in tensorboard
+```bash
+tensorboard --logdir=${output_root}
 ```
 
 ### Reconstruct data
