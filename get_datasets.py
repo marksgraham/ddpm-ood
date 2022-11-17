@@ -50,15 +50,11 @@ def download_data(data_root, download_celeba):
         out_dir.mkdir(parents=True, exist_ok=True)
         for i in range(len(dataset)):
             img, label = dataset[i]
-            # import matplotlib.pyplot as plt
-            # plt.imshow(img)
-            # plt.show()
-            # break
             img_np = np.array(img).transpose((2,0,1))
             np.save(out_dir / f'{dataset_name}_{i}.npy', img_np)
 
 
-    #SHVN
+    # SHVN
     root = Path(data_root) / 'SVHN' / 'raw'
     for set in ['train', 'test']:
         dataset = SVHN(root=root, split=set,download=True)
@@ -67,14 +63,10 @@ def download_data(data_root, download_celeba):
         out_dir.mkdir(parents=True, exist_ok=True)
         for i in range(len(dataset)):
             img, label = dataset[i]
-            # import matplotlib.pyplot as plt
-            # plt.imshow(img)
-            # plt.show()
-            # break
             img_np = np.array(img).transpose((2,0,1))
             np.save(out_dir / f'{dataset_name}_{i}.npy', img_np)
 
-    # CELEBA
+    # CelebA
     root = Path(data_root) / 'CelebA' / 'raw'
     for set in ['train', 'valid', 'test']:
         dataset = CelebA(root=root, split=set,download=download_celeba)
@@ -84,10 +76,6 @@ def download_data(data_root, download_celeba):
         for i in range(len(dataset)):
             img, label = dataset[i]
             img = img.resize((32,32))
-            # import matplotlib.pyplot as plt
-            # plt.imshow(img)
-            # plt.show()
-            # break
             img_np = np.array(img).transpose((2,0,1))
             np.save(out_dir / f'{dataset_name}_{i}.npy', img_np)
 
@@ -99,6 +87,8 @@ def save_list_as_csv(list, output_path):
 def create_train_test_splits(data_root):
     splits_dir = Path(data_root) / 'data_splits'
     splits_dir.mkdir(exist_ok=True, parents=True)
+
+    # need to create a train/val split for these datasets
     for dataset in ['FashionMNIST', 'MNIST', 'CIFAR10', 'SVHN']:
         numpy_data_root = Path(data_root) / dataset / 'numpy'
         train_and_val_list = list((numpy_data_root / 'train').glob('*'))

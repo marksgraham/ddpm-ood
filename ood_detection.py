@@ -127,7 +127,7 @@ def main(args):
             all_results_dict[model][method_name] = [roc_score]
             all_results_dict[model]['ood_data'] = [out_dataset]
 
-    # print results
+    # print results--output_dir=${output_root} \
     for method in [f'Zscore_{plot_target}']:
         ood_datasets = all_results_dict[model]['ood_data']
         scores = all_results_dict[model][method]

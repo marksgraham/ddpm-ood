@@ -3,6 +3,7 @@ matplotlib
 monai[nibabel]==0.8.0
 pandas
 scipy
+tensorboard
 tensorboardX
 tqdm
 einops>=0.3.2
