@@ -69,8 +69,15 @@ python reconstruct.py \
 --run_in=1 \
 --run_out=1
 ```
+The arg `inference_skip_factor` controls the amount of t starting points that are skipped during reconstruction. 
+This table shows the relationship between values of `inference_skip_factor` and the number of reconstructions, as needed
+to reproduce results in Supplementary Table 4 (for max_t=1000).
+
+| **inference_skip_factor:** | 1   | 2   | 3   | 4   | 5   | 8   | 16  | 32  | 64  |
+|------------------------|-----|-----|-----|-----|-----|-----|-----|-----|-----|
+| **num_reconstructions:**   | 100 | 50  | 34  | 25  | 20  | 13  | 7   | 4   | 2   |
 N.B. For a quicker run, you can choose to only reconstruct a subset of the validation set with e.g. `--first_n_val=1000` 
-or a subset of the in/out datasets with `--first_n_val=1000`
+or a subset of the in/out datasets with `--first_n=1000`
 
 The `--inference_skip_factor` controls the number of reconstructions performed. For easy reference, you can use this look-up to match
 
