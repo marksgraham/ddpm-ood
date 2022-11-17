@@ -112,7 +112,7 @@ def create_train_test_splits(data_root):
     dataset = 'CelebA'
     numpy_data_root = Path(data_root) / dataset / 'numpy'
     train_list = list((numpy_data_root / 'train').glob('*'))
-    val_list = list((numpy_data_root / 'val').glob('*'))
+    val_list = list((numpy_data_root / 'valid').glob('*'))
     test_list = list((numpy_data_root / 'test').glob('*'))
     for split_name, data_split in zip(['train', 'val', 'test'],
                                       [train_list, val_list, test_list]):
