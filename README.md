@@ -17,24 +17,25 @@ cd docker/
 bash create_docker_image.sh
 ```
 
-### Set-up paths
+### Setup paths
+Select where you want your data and model outputs stored.
 ```
 data_root=/root/for/downloaded/dataset
-output_root/root/for/saved/models
+output_root=/root/for/saved/models
 ```
 
 ### Download and process datasets
 ```bash
 python get_datasets.py --data_root=${data_root}
 ```
-N.B. If the error "The daily quota of the file img_align_celeba.zip is exceeded and it can't be downloaded." is thrown,
-you need to download these files manually from the GDrive and place them in data_root/CelebA/raw/, see 
-[here](https://github.com/pytorch/vision/issues/1920#issuecomment-852237902). You can then run
+N.B. If the error "The daily quota of the file img_align_celeba.zip is exceeded and it can't be downloaded" is thrown,
+you need to download these files manually from the GDrive and place them in ${data_root}/CelebA/raw/, 
+[see here](https://github.com/pytorch/vision/issues/1920#issuecomment-852237902). You can then run
 ```bash
 python get_datasets.py --data_root=${data_root} --download_celeba=False
 ```
 ### Train models
-Examples here are given for using FashionMNIST as the in-distribution dataset. Commands for other datasets are given 
+Examples here use FashionMNIST as the in-distribution dataset. Commands for other datasets are given 
 in [README_additional.md](README_additional.md).
 
 ```bash
@@ -76,6 +77,7 @@ to reproduce results in Supplementary Table 4 (for max_t=1000).
 | **inference_skip_factor:** | 1   | 2   | 3   | 4   | 5   | 8   | 16  | 32  | 64  |
 |------------------------|-----|-----|-----|-----|-----|-----|-----|-----|-----|
 | **num_reconstructions:**   | 100 | 50  | 34  | 25  | 20  | 13  | 7   | 4   | 2   |
+
 N.B. For a quicker run, you can choose to only reconstruct a subset of the validation set with e.g. `--first_n_val=1000` 
 or a subset of the in/out datasets with `--first_n=1000`
 
