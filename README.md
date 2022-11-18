@@ -4,7 +4,7 @@
   <img width="800" height="300" src="https://user-images.githubusercontent.com/7947315/202760559-5f053775-122b-47ba-a729-dc1d3485c660.svg">
 </p>
 
-This repo does provides code for the paper 'Denoising Diffusion Models for Out-of-Distribution Detection'.
+This repo provides code for the paper 'Denoising Diffusion Models for Out-of-Distribution Detection'.
 
 It is based on the excellent [Latent Diffusion repository](https://github.com/CompVis/latent-diffusion) 
 (although the models in this work are vanilla diffusion models) - many thanks!
@@ -33,7 +33,7 @@ output_root=/root/for/saved/models
 python get_datasets.py --data_root=${data_root}
 ```
 N.B. If the error "The daily quota of the file img_align_celeba.zip is exceeded and it can't be downloaded" is thrown,
-you need to download these files manually from the GDrive and place them in ${data_root}/CelebA/raw/, 
+you need to download these files manually from the GDrive and place them in `${data_root}/CelebA/raw/`, 
 [see here](https://github.com/pytorch/vision/issues/1920#issuecomment-852237902). You can then run
 
 ```bash
