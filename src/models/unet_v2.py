@@ -21,14 +21,18 @@ def timestep_embedding(timesteps, dim, max_period=10000, repeat_only=False):
     if not repeat_only:
         half = dim // 2
         freqs = torch.exp(
-            -math.log(max_period) * torch.arange(start=0, end=half, dtype=torch.float32) / half
+            -math.log(max_period)
+            * torch.arange(start=0, end=half, dtype=torch.float32)
+            / half
         ).to(device=timesteps.device)
         args = timesteps[:, None].float() * freqs[None]
         embedding = torch.cat([torch.cos(args), torch.sin(args)], dim=-1)
         if dim % 2:
-            embedding = torch.cat([embedding, torch.zeros_like(embedding[:, :1])], dim=-1)
+            embedding = torch.cat(
+                [embedding, torch.zeros_like(embedding[:, :1])], dim=-1
+            )
     else:
-        embedding = repeat(timesteps, 'b -> b d', d=dim)
+        embedding = repeat(timesteps, "b -> b d", d=dim)
     return embedding
 
 
@@ -65,12 +69,7 @@ class TimestepEmbedSequential(nn.Sequential, TimestepBlock):
 
 
 def Normalize(in_channels):
-    return nn.GroupNorm(
-        num_groups=32,
-        num_channels=in_channels,
-        eps=1e-6,
-        affine=True
-    )
+    return nn.GroupNorm(num_groups=32, num_channels=in_channels, eps=1e-6, affine=True)
 
 
 def count_flops_attn(model, _x, y):
@@ -89,7 +88,7 @@ def count_flops_attn(model, _x, y):
     # We perform two matmuls with the same number of ops.
     # The first computes the weight matrix, the second computes
     # the combination of the value vectors.
-    matmul_ops = 2 * b * (num_spatial ** 2) * c
+    matmul_ops = 2 * b * (num_spatial**2) * c
     model.total_ops += th.DoubleTensor([matmul_ops])
 
 
@@ -133,11 +132,11 @@ class AttentionBlock(nn.Module):
     """
 
     def __init__(
-            self,
-            channels,
-            num_heads=1,
-            num_head_channels=-1,
-            use_checkpoint=False,
+        self,
+        channels,
+        num_heads=1,
+        num_head_channels=-1,
+        use_checkpoint=False,
     ):
         super().__init__()
         self.channels = channels
@@ -145,7 +144,7 @@ class AttentionBlock(nn.Module):
             self.num_heads = num_heads
         else:
             assert (
-                    channels % num_head_channels == 0
+                channels % num_head_channels == 0
             ), f"q,k,v channels {channels} is not divisible by num_head_channels {num_head_channels}"
             self.num_heads = channels // num_head_channels
         self.use_checkpoint = use_checkpoint
@@ -156,7 +155,9 @@ class AttentionBlock(nn.Module):
         self.proj_out = zero_module(nn.Conv1d(channels, channels, 1))
 
     def forward(self, x):
-        return self._forward(x, )
+        return self._forward(
+            x,
+        )
 
     def _forward(self, x):
         b, c, *spatial = x.shape
@@ -231,15 +232,15 @@ class ResBlock(TimestepBlock):
     """
 
     def __init__(
-            self,
-            channels,
-            emb_channels,
-            dropout,
-            out_channels=None,
-            use_conv=False,
-            use_scale_shift_norm=False,
-            up=False,
-            down=False,
+        self,
+        channels,
+        emb_channels,
+        dropout,
+        out_channels=None,
+        use_conv=False,
+        use_scale_shift_norm=False,
+        up=False,
+        down=False,
     ):
         super().__init__()
         self.channels = channels
@@ -277,17 +278,13 @@ class ResBlock(TimestepBlock):
             Normalize(self.out_channels),
             nn.SiLU(),
             nn.Dropout(p=dropout),
-            zero_module(
-                nn.Conv2d(self.out_channels, self.out_channels, 3, padding=1)
-            ),
+            zero_module(nn.Conv2d(self.out_channels, self.out_channels, 3, padding=1)),
         )
 
         if self.out_channels == channels:
             self.skip_connection = nn.Identity()
         elif use_conv:
-            self.skip_connection = nn.Conv2d(
-                channels, self.out_channels, 3, padding=1
-            )
+            self.skip_connection = nn.Conv2d(channels, self.out_channels, 3, padding=1)
         else:
             self.skip_connection = nn.Conv2d(channels, self.out_channels, 1)
 
@@ -319,23 +316,23 @@ class ResBlock(TimestepBlock):
 
 class UNetModel(nn.Module):
     def __init__(
-            self,
-            image_size,
-            in_channels,
-            model_channels,
-            out_channels,
-            num_res_blocks,
-            attention_resolutions,
-            dropout=0,
-            channel_mult=(1, 2, 4, 8),
-            conv_resample=True,
-            num_classes=None,
-            num_heads=1,
-            num_head_channels=-1,
-            num_heads_upsample=-1,
-            use_scale_shift_norm=False,
-            resblock_updown=False,
-            n_embed=None  # custom support for prediction of discrete ids into codebook of first stage vq model
+        self,
+        image_size,
+        in_channels,
+        model_channels,
+        out_channels,
+        num_res_blocks,
+        attention_resolutions,
+        dropout=0,
+        channel_mult=(1, 2, 4, 8),
+        conv_resample=True,
+        num_classes=None,
+        num_heads=1,
+        num_head_channels=-1,
+        num_heads_upsample=-1,
+        use_scale_shift_norm=False,
+        resblock_updown=False,
+        n_embed=None,  # custom support for prediction of discrete ids into codebook of first stage vq model
     ):
         super().__init__()
 
@@ -415,9 +412,7 @@ class UNetModel(nn.Module):
                             down=True,
                         )
                         if resblock_updown
-                        else Downsample(
-                            ch, conv_resample, out_channels=out_ch
-                        )
+                        else Downsample(ch, conv_resample, out_channels=out_ch)
                     )
                 )
                 ch = out_ch
@@ -509,9 +504,9 @@ class UNetModel(nn.Module):
         :return: an [N x C x ...] Tensor of outputs.
         """
         assert (y is not None) == (
-                self.num_classes is not None
+            self.num_classes is not None
         ), "must specify y if and only if the model is class-conditional"
-        assert timesteps is not None, 'need to implement no-timestep usage'
+        assert timesteps is not None, "need to implement no-timestep usage"
         hs = []
         t_emb = timestep_embedding(timesteps, self.model_channels, repeat_only=False)
         emb = self.time_embed(t_emb)

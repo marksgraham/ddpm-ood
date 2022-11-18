@@ -22,10 +22,8 @@ class DummyVQVAE(nn.Module):
     def get_ldm_inputs(self, images: torch.Tensor) -> List[torch.Tensor]:
         return images
 
-
-
     def reconstruct_ldm_outputs(self, images: torch.Tensor) -> List[torch.Tensor]:
-        return  images
+        return images
 
     def pad_ldm_inputs(self, images: torch.Tensor) -> List[torch.Tensor]:
         return images
@@ -39,7 +37,9 @@ class DummyVQVAE(nn.Module):
 
         return samples_images
 
-    def forward(self, images: torch.Tensor, get_ldm_inputs=False) -> Dict[str, List[torch.Tensor]]:
+    def forward(
+        self, images: torch.Tensor, get_ldm_inputs=False
+    ) -> Dict[str, List[torch.Tensor]]:
         # if statement allows the use of forward() in DataParallel mode to get ldm inputs
         if get_ldm_inputs:
             return self.get_ldm_inputs(images)

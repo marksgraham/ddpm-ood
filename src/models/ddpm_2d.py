@@ -24,7 +24,9 @@ def default(val, d):
 
 
 def noise_like(shape, device, repeat=False):
-    repeat_noise = lambda: torch.randn((1, *shape[1:]), device=device).repeat(shape[0], *((1,) * (len(shape) - 1)))
+    repeat_noise = lambda: torch.randn((1, *shape[1:]), device=device).repeat(
+        shape[0], *((1,) * (len(shape) - 1))
+    )
     noise = lambda: torch.randn(shape, device=device)
     return repeat_noise() if repeat else noise()
 
@@ -35,15 +37,20 @@ def extract(a, t, x_shape):
     return out.reshape(b, *((1,) * (len(x_shape) - 1)))
 
 
-def make_beta_schedule(schedule, n_timestep, linear_start=1e-4, linear_end=2e-2, cosine_s=8e-3):
+def make_beta_schedule(
+    schedule, n_timestep, linear_start=1e-4, linear_end=2e-2, cosine_s=8e-3
+):
     if schedule == "linear":
         betas = (
-                torch.linspace(linear_start ** 0.5, linear_end ** 0.5, n_timestep, dtype=torch.float64) ** 2
+            torch.linspace(
+                linear_start**0.5, linear_end**0.5, n_timestep, dtype=torch.float64
+            )
+            ** 2
         )
 
     elif schedule == "cosine":
         timesteps = (
-                torch.arange(n_timestep + 1, dtype=torch.float64) / n_timestep + cosine_s
+            torch.arange(n_timestep + 1, dtype=torch.float64) / n_timestep + cosine_s
         )
         alphas = timesteps / (1 + cosine_s) * np.pi / 2
         alphas = torch.cos(alphas).pow(2)
@@ -52,9 +59,14 @@ def make_beta_schedule(schedule, n_timestep, linear_start=1e-4, linear_end=2e-2,
         betas = np.clip(betas, a_min=0, a_max=0.999)
 
     elif schedule == "sqrt_linear":
-        betas = torch.linspace(linear_start, linear_end, n_timestep, dtype=torch.float64)
+        betas = torch.linspace(
+            linear_start, linear_end, n_timestep, dtype=torch.float64
+        )
     elif schedule == "sqrt":
-        betas = torch.linspace(linear_start, linear_end, n_timestep, dtype=torch.float64) ** 0.5
+        betas = (
+            torch.linspace(linear_start, linear_end, n_timestep, dtype=torch.float64)
+            ** 0.5
+        )
     else:
         raise ValueError(f"schedule '{schedule}' unknown.")
     return betas.numpy()
@@ -62,35 +74,35 @@ def make_beta_schedule(schedule, n_timestep, linear_start=1e-4, linear_end=2e-2,
 
 class DDPM(nn.Module):
     def __init__(
-            self,
-            unet_config,
-            timesteps: int = 1000,
-            beta_schedule="linear",
-            loss_type="l2",
-            log_every_t=100,
-            clip_denoised=False,
-            linear_start=1e-4,
-            linear_end=2e-2,
-            cosine_s=8e-3,
-            original_elbo_weight=0.,
-            v_posterior=0.,  # weight for choosing posterior variance as sigma = (1-v) * beta_tilde + v * beta
-            l_simple_weight=1.,
-            parameterization="eps",  # all assuming fixed variance schedules
-            learn_logvar=False,
-            logvar_init=0.,
-            learn_predicted_variance=False,
-            learn_mean_only=False,
-            t_sampler=None,
-            vlb_loss_weighting=1
-
+        self,
+        unet_config,
+        timesteps: int = 1000,
+        beta_schedule="linear",
+        loss_type="l2",
+        log_every_t=100,
+        clip_denoised=False,
+        linear_start=1e-4,
+        linear_end=2e-2,
+        cosine_s=8e-3,
+        original_elbo_weight=0.0,
+        v_posterior=0.0,  # weight for choosing posterior variance as sigma = (1-v) * beta_tilde + v * beta
+        l_simple_weight=1.0,
+        parameterization="eps",  # all assuming fixed variance schedules
+        learn_logvar=False,
+        logvar_init=0.0,
+        learn_predicted_variance=False,
+        learn_mean_only=False,
+        t_sampler=None,
+        vlb_loss_weighting=1,
     ):
         super().__init__()
-        assert parameterization in ["eps", "x0"], 'currently only supporting "eps" and "x0"'
+        assert parameterization in [
+            "eps",
+            "x0",
+        ], 'currently only supporting "eps" and "x0"'
         self.parameterization = parameterization
 
-        self.model = UNetModel(
-            **unet_config.get("params", dict())
-        )
+        self.model = UNetModel(**unet_config.get("params", dict()))
 
         self.clip_denoised = clip_denoised
         self.log_every_t = log_every_t
@@ -116,62 +128,97 @@ class DDPM(nn.Module):
         self.learn_predicted_variance = learn_predicted_variance
         self.learn_mean_only = learn_mean_only
 
-        self.t_sampler = LossSecondMomentResampler(self.num_timesteps) if t_sampler else UniformSampler(self.num_timesteps)
+        self.t_sampler = (
+            LossSecondMomentResampler(self.num_timesteps)
+            if t_sampler
+            else UniformSampler(self.num_timesteps)
+        )
 
     def register_schedule(
-            self,
-            beta_schedule="linear",
-            timesteps=1000,
-            linear_start=1e-4,
-            linear_end=2e-2,
-            cosine_s=8e-3
+        self,
+        beta_schedule="linear",
+        timesteps=1000,
+        linear_start=1e-4,
+        linear_end=2e-2,
+        cosine_s=8e-3,
     ):
-        betas = make_beta_schedule(beta_schedule, timesteps, linear_start=linear_start, linear_end=linear_end,
-                                   cosine_s=cosine_s)
-        alphas = 1. - betas
+        betas = make_beta_schedule(
+            beta_schedule,
+            timesteps,
+            linear_start=linear_start,
+            linear_end=linear_end,
+            cosine_s=cosine_s,
+        )
+        alphas = 1.0 - betas
         alphas_cumprod = np.cumprod(alphas, axis=0)
-        alphas_cumprod_prev = np.append(1., alphas_cumprod[:-1])
+        alphas_cumprod_prev = np.append(1.0, alphas_cumprod[:-1])
 
-        timesteps, = betas.shape
+        (timesteps,) = betas.shape
         self.num_timesteps = int(timesteps)
         self.linear_start = linear_start
         self.linear_end = linear_end
 
         to_torch = partial(torch.tensor, dtype=torch.float32)
 
-        self.register_buffer('betas', to_torch(betas))
-        self.register_buffer('alphas_cumprod', to_torch(alphas_cumprod))
-        self.register_buffer('alphas_cumprod_prev', to_torch(alphas_cumprod_prev))
+        self.register_buffer("betas", to_torch(betas))
+        self.register_buffer("alphas_cumprod", to_torch(alphas_cumprod))
+        self.register_buffer("alphas_cumprod_prev", to_torch(alphas_cumprod_prev))
 
         # calculations for diffusion q(x_t | x_{t-1}) and others
-        self.register_buffer('sqrt_alphas_cumprod', to_torch(np.sqrt(alphas_cumprod)))
-        self.register_buffer('sqrt_one_minus_alphas_cumprod', to_torch(np.sqrt(1. - alphas_cumprod)))
-        self.register_buffer('log_one_minus_alphas_cumprod', to_torch(np.log(1. - alphas_cumprod)))
-        self.register_buffer('sqrt_recip_alphas_cumprod', to_torch(np.sqrt(1. / alphas_cumprod)))
-        self.register_buffer('sqrt_recipm1_alphas_cumprod', to_torch(np.sqrt(1. / alphas_cumprod - 1)))
+        self.register_buffer("sqrt_alphas_cumprod", to_torch(np.sqrt(alphas_cumprod)))
+        self.register_buffer(
+            "sqrt_one_minus_alphas_cumprod", to_torch(np.sqrt(1.0 - alphas_cumprod))
+        )
+        self.register_buffer(
+            "log_one_minus_alphas_cumprod", to_torch(np.log(1.0 - alphas_cumprod))
+        )
+        self.register_buffer(
+            "sqrt_recip_alphas_cumprod", to_torch(np.sqrt(1.0 / alphas_cumprod))
+        )
+        self.register_buffer(
+            "sqrt_recipm1_alphas_cumprod", to_torch(np.sqrt(1.0 / alphas_cumprod - 1))
+        )
 
         # calculations for posterior q(x_{t-1} | x_t, x_0)
-        posterior_variance = (1 - self.v_posterior) * betas * (1. - alphas_cumprod_prev) / (
-                1. - alphas_cumprod) + self.v_posterior * betas
+        posterior_variance = (1 - self.v_posterior) * betas * (
+            1.0 - alphas_cumprod_prev
+        ) / (1.0 - alphas_cumprod) + self.v_posterior * betas
         # above: equal to 1. / (1. / (1. - alpha_cumprod_tm1) + alpha_t / beta_t)
-        self.register_buffer('posterior_variance', to_torch(posterior_variance))
+        self.register_buffer("posterior_variance", to_torch(posterior_variance))
         # below: log calculation clipped because the posterior variance is 0 at the beginning of the diffusion chain
-        self.register_buffer('posterior_log_variance_clipped', to_torch(np.log(np.append(posterior_variance[1], posterior_variance[1:]))))
-        self.register_buffer('posterior_mean_coef1', to_torch(
-            betas * np.sqrt(alphas_cumprod_prev) / (1. - alphas_cumprod)))
-        self.register_buffer('posterior_mean_coef2', to_torch(
-            (1. - alphas_cumprod_prev) * np.sqrt(alphas) / (1. - alphas_cumprod)))
+        self.register_buffer(
+            "posterior_log_variance_clipped",
+            to_torch(np.log(np.append(posterior_variance[1], posterior_variance[1:]))),
+        )
+        self.register_buffer(
+            "posterior_mean_coef1",
+            to_torch(betas * np.sqrt(alphas_cumprod_prev) / (1.0 - alphas_cumprod)),
+        )
+        self.register_buffer(
+            "posterior_mean_coef2",
+            to_torch(
+                (1.0 - alphas_cumprod_prev) * np.sqrt(alphas) / (1.0 - alphas_cumprod)
+            ),
+        )
 
         if self.parameterization == "eps":
-            lvlb_weights = self.betas ** 2 / (
-                    2 * self.posterior_variance * to_torch(alphas) * (1 - self.alphas_cumprod))
+            lvlb_weights = self.betas**2 / (
+                2
+                * self.posterior_variance
+                * to_torch(alphas)
+                * (1 - self.alphas_cumprod)
+            )
         elif self.parameterization == "x0":
-            lvlb_weights = 0.5 * np.sqrt(torch.Tensor(alphas_cumprod)) / (2. * 1 - torch.Tensor(alphas_cumprod))
+            lvlb_weights = (
+                0.5
+                * np.sqrt(torch.Tensor(alphas_cumprod))
+                / (2.0 * 1 - torch.Tensor(alphas_cumprod))
+            )
         else:
             raise NotImplementedError("mu not supported")
         # TODO how to choose this term
         lvlb_weights[0] = lvlb_weights[1]
-        self.register_buffer('lvlb_weights', lvlb_weights, persistent=False)
+        self.register_buffer("lvlb_weights", lvlb_weights, persistent=False)
         assert not torch.isnan(self.lvlb_weights).all()
 
     def q_mean_variance(self, x_start, t):
@@ -188,8 +235,8 @@ class DDPM(nn.Module):
 
     def predict_start_from_noise(self, x_t, t, noise):
         return (
-                extract(self.sqrt_recip_alphas_cumprod, t, x_t.shape) * x_t -
-                extract(self.sqrt_recipm1_alphas_cumprod, t, x_t.shape) * noise
+            extract(self.sqrt_recip_alphas_cumprod, t, x_t.shape) * x_t
+            - extract(self.sqrt_recipm1_alphas_cumprod, t, x_t.shape) * noise
         )
 
     def q_posterior(self, x_start, x_t, t):
@@ -198,11 +245,13 @@ class DDPM(nn.Module):
             q(x_{t-1} | x_t, x_0)
         """
         posterior_mean = (
-                extract(self.posterior_mean_coef1, t, x_t.shape) * x_start +
-                extract(self.posterior_mean_coef2, t, x_t.shape) * x_t
+            extract(self.posterior_mean_coef1, t, x_t.shape) * x_start
+            + extract(self.posterior_mean_coef2, t, x_t.shape) * x_t
         )
         posterior_variance = extract(self.posterior_variance, t, x_t.shape)
-        posterior_log_variance_clipped = extract(self.posterior_log_variance_clipped, t, x_t.shape)
+        posterior_log_variance_clipped = extract(
+            self.posterior_log_variance_clipped, t, x_t.shape
+        )
         return posterior_mean, posterior_variance, posterior_log_variance_clipped
 
     def p_mean_variance(self, x, t, clip_denoised: bool, return_x0=False):
@@ -226,9 +275,7 @@ class DDPM(nn.Module):
 
             # # interpolation based prediction
             model_out, model_var_values = torch.split(model_out, C, dim=1)
-            min_log = extract(
-                self.posterior_log_variance_clipped, t, x.shape
-            )
+            min_log = extract(self.posterior_log_variance_clipped, t, x.shape)
             max_log = extract(torch.log(self.betas), t, x.shape)
             # The model_var_values is [-1, 1] for [min_var, max_var].
             frac = (model_var_values + 1) / 2
@@ -241,9 +288,11 @@ class DDPM(nn.Module):
             x_recon = model_out
 
         if clip_denoised:
-            x_recon.clamp_(-1., 1.)
+            x_recon.clamp_(-1.0, 1.0)
 
-        model_mean, posterior_variance, posterior_log_variance = self.q_posterior(x_start=x_recon, x_t=x, t=t)
+        model_mean, posterior_variance, posterior_log_variance = self.q_posterior(
+            x_start=x_recon, x_t=x, t=t
+        )
 
         if self.learn_predicted_variance:
             posterior_variance = model_variance
@@ -256,14 +305,14 @@ class DDPM(nn.Module):
 
     @torch.no_grad()
     def p_sample(
-            self,
-            x,
-            t,
-            clip_denoised=True,
-            repeat_noise=False,
-            return_x0=False,
-            temperature=1.,
-            noise_dropout=0.,
+        self,
+        x,
+        t,
+        clip_denoised=True,
+        repeat_noise=False,
+        return_x0=False,
+        temperature=1.0,
+        noise_dropout=0.0,
     ):
         """
         Sample x_{t-1} from the model at the given timestep.
@@ -285,12 +334,15 @@ class DDPM(nn.Module):
             model_mean, _, model_log_variance = outputs
 
         noise = noise_like(x.shape, device, repeat_noise) * temperature
-        if noise_dropout > 0.:
+        if noise_dropout > 0.0:
             noise = torch.nn.functional.dropout(noise, p=noise_dropout)
         # no noise when t == 0
         nonzero_mask = (1 - (t == 0).float()).reshape(b, *((1,) * (len(x.shape) - 1)))
         if return_x0:
-            return model_mean + nonzero_mask * (0.5 * model_log_variance).exp() * noise, x0
+            return (
+                model_mean + nonzero_mask * (0.5 * model_log_variance).exp() * noise,
+                x0,
+            )
         else:
             return model_mean + nonzero_mask * (0.5 * model_log_variance).exp() * noise
 
@@ -302,9 +354,16 @@ class DDPM(nn.Module):
         img = torch.randn(shape, device=device)
         intermediates = [img]
 
-        for i in tqdm(reversed(range(0, self.num_timesteps)), desc='sampling loop time step', total=self.num_timesteps):
-            img = self.p_sample(img, torch.full((b,), i, device=device, dtype=torch.long),
-                                clip_denoised=self.clip_denoised)
+        for i in tqdm(
+            reversed(range(0, self.num_timesteps)),
+            desc="sampling loop time step",
+            total=self.num_timesteps,
+        ):
+            img = self.p_sample(
+                img,
+                torch.full((b,), i, device=device, dtype=torch.long),
+                clip_denoised=self.clip_denoised,
+            )
             if i % self.log_every_t == 0 or i == self.num_timesteps - 1:
                 intermediates.append(img)
         if return_intermediates:
@@ -313,11 +372,13 @@ class DDPM(nn.Module):
 
     @torch.no_grad()
     def sample(self, batch_size=16, return_intermediates=False):
-        print('Am here in sample...')
+        print("Am here in sample...")
         image_size = self.image_size
         channels = self.channels
-        return self.p_sample_loop((batch_size, channels, image_size, image_size),
-                                  return_intermediates=return_intermediates)
+        return self.p_sample_loop(
+            (batch_size, channels, image_size, image_size),
+            return_intermediates=return_intermediates,
+        )
 
     def q_sample(self, x_start, t, noise=None):
         """
@@ -331,20 +392,20 @@ class DDPM(nn.Module):
         noise = default(noise, lambda: torch.randn_like(x_start))
 
         return (
-                extract(self.sqrt_alphas_cumprod, t, x_start.shape) * x_start +
-                extract(self.sqrt_one_minus_alphas_cumprod, t, x_start.shape) * noise
+            extract(self.sqrt_alphas_cumprod, t, x_start.shape) * x_start
+            + extract(self.sqrt_one_minus_alphas_cumprod, t, x_start.shape) * noise
         )
 
     def get_loss(self, pred, target, mean=True):
-        if self.loss_type == 'l1':
+        if self.loss_type == "l1":
             loss = (target - pred).abs()
             if mean:
                 loss = loss.mean()
-        elif self.loss_type == 'l2':
+        elif self.loss_type == "l2":
             if mean:
                 loss = torch.nn.functional.mse_loss(target, pred)
             else:
-                loss = torch.nn.functional.mse_loss(target, pred, reduction='none')
+                loss = torch.nn.functional.mse_loss(target, pred, reduction="none")
         else:
             raise NotImplementedError("unknown loss type '{loss_type}'")
 
@@ -365,14 +426,12 @@ class DDPM(nn.Module):
             assert model_output.shape == (B, C * 2, *x_noisy.shape[2:])
             model_output, model_var_values = torch.split(model_output, C, dim=1)
             # interpolation based variance prediction
-            min_log = extract(
-                self.posterior_log_variance_clipped, t, x_start.shape
-            )
+            min_log = extract(self.posterior_log_variance_clipped, t, x_start.shape)
             max_log = extract(torch.log(self.betas), t, x_start.shape)
             # The model_var_values is [-1, 1] for [min_var, max_var].
             frac = (model_var_values + 1) / 2
             model_log_variance = frac * max_log + (1 - frac) * min_log
-            #model_variance = torch.exp(model_log_variance)
+            # model_variance = torch.exp(model_log_variance)
 
         loss_dict = {}
         if self.parameterization == "eps":
@@ -380,17 +439,21 @@ class DDPM(nn.Module):
         elif self.parameterization == "x0":
             target = x_start
         else:
-            raise NotImplementedError(f"Paramterization {self.parameterization} not yet supported")
+            raise NotImplementedError(
+                f"Paramterization {self.parameterization} not yet supported"
+            )
 
-        loss_simple = self.get_loss(model_output, target, mean=False).mean(dim=[1, 2, 3])
-        loss_dict.update({f'loss_simple': (loss_simple*weights).mean()})
+        loss_simple = self.get_loss(model_output, target, mean=False).mean(
+            dim=[1, 2, 3]
+        )
+        loss_dict.update({f"loss_simple": (loss_simple * weights).mean()})
 
         logvar_t = self.logvar[t].to(x_start.device)
         loss = loss_simple / torch.exp(logvar_t) + logvar_t
         # loss = loss_simple / torch.exp(self.logvar) + self.logvar
         if self.learn_logvar:
-            loss_dict.update({f'loss_gamma': loss.mean()})
-            loss_dict.update({'logvar': self.logvar.data.mean()})
+            loss_dict.update({f"loss_gamma": loss.mean()})
+            loss_dict.update({"logvar": self.logvar.data.mean()})
 
         loss = self.l_simple_weight * loss.mean()
 
@@ -399,44 +462,76 @@ class DDPM(nn.Module):
             from util import normal_kl
 
             if self.parameterization == "eps":
-                x_recon = self.predict_start_from_noise(x_noisy, t=t, noise=model_output)
+                x_recon = self.predict_start_from_noise(
+                    x_noisy, t=t, noise=model_output
+                )
             elif self.parameterization == "x0":
                 x_recon = model_output
             model_mean, _, _ = self.q_posterior(x_start=x_recon, x_t=x_noisy, t=t)
 
-            true_mean, _, true_log_variance_clipped = self.q_posterior(x_start=x_start, x_t=x_noisy, t=t)
+            true_mean, _, true_log_variance_clipped = self.q_posterior(
+                x_start=x_start, x_t=x_noisy, t=t
+            )
             # if the l_simple_weight == 0, only learn the VLB and unfreeze the mean here
             if self.l_simple_weight == 0:
-                kl = normal_kl(true_mean, true_log_variance_clipped, model_mean, model_log_variance).mean(dim=[1, 2, 3])
+                kl = normal_kl(
+                    true_mean, true_log_variance_clipped, model_mean, model_log_variance
+                ).mean(dim=[1, 2, 3])
             else:
-                kl = normal_kl(true_mean, true_log_variance_clipped, model_mean.detach(), model_log_variance).mean(dim=[1, 2, 3])
-            loss_dict['loss_vlb'] = (kl * weights).mean() * self.num_timesteps / 1000 * self.vlb_loss_weighting
-            loss += loss_dict['loss_vlb']
-            loss_dict.update({f'loss': loss})
-            loss_dict['vlb_per_t'] = kl
-            loss_dict['t'] = t
+                kl = normal_kl(
+                    true_mean,
+                    true_log_variance_clipped,
+                    model_mean.detach(),
+                    model_log_variance,
+                ).mean(dim=[1, 2, 3])
+            loss_dict["loss_vlb"] = (
+                (kl * weights).mean()
+                * self.num_timesteps
+                / 1000
+                * self.vlb_loss_weighting
+            )
+            loss += loss_dict["loss_vlb"]
+            loss_dict.update({f"loss": loss})
+            loss_dict["vlb_per_t"] = kl
+            loss_dict["t"] = t
         elif self.learn_mean_only:
             if self.parameterization == "eps":
-                x_recon = self.predict_start_from_noise(x_noisy, t=t, noise=model_output)
+                x_recon = self.predict_start_from_noise(
+                    x_noisy, t=t, noise=model_output
+                )
             elif self.parameterization == "x0":
                 x_recon = model_output
-            model_mean, posterior_variance, posterior_log_variance_clipped = self.q_posterior(x_start=x_recon,
-                                                                                              x_t=x_noisy, t=t)
-            true_mean, _, true_log_variance_clipped = self.q_posterior(x_start=x_start, x_t=x_noisy, t=t)
+            (
+                model_mean,
+                posterior_variance,
+                posterior_log_variance_clipped,
+            ) = self.q_posterior(x_start=x_recon, x_t=x_noisy, t=t)
+            true_mean, _, true_log_variance_clipped = self.q_posterior(
+                x_start=x_start, x_t=x_noisy, t=t
+            )
             # if the l_simple_weight == 0, only learn the VLB and unfreeze the mean here
-            kl = normal_kl(true_mean, true_log_variance_clipped, model_mean, posterior_log_variance_clipped).mean(
-                dim=[1, 2, 3])
+            kl = normal_kl(
+                true_mean,
+                true_log_variance_clipped,
+                model_mean,
+                posterior_log_variance_clipped,
+            ).mean(dim=[1, 2, 3])
 
-            loss_dict['loss_vlb'] = (kl * weights).mean() * self.num_timesteps / 1000 * self.vlb_loss_weighting
-            if loss_dict['loss_vlb'].sum() > 5:
-                print('debug')
-            loss += loss_dict['loss_vlb']
-            loss_dict.update({f'loss': loss})
-            loss_dict['vlb_per_t'] = kl
-            loss_dict['t'] = t
+            loss_dict["loss_vlb"] = (
+                (kl * weights).mean()
+                * self.num_timesteps
+                / 1000
+                * self.vlb_loss_weighting
+            )
+            if loss_dict["loss_vlb"].sum() > 5:
+                print("debug")
+            loss += loss_dict["loss_vlb"]
+            loss_dict.update({f"loss": loss})
+            loss_dict["vlb_per_t"] = kl
+            loss_dict["t"] = t
         else:
-            loss_dict['vlb_per_t'] = torch.Tensor([torch.nan] * len(t)).to(t.device)
-            loss_dict['t'] = t
+            loss_dict["vlb_per_t"] = torch.Tensor([torch.nan] * len(t)).to(t.device)
+            loss_dict["t"] = t
         #     if self.loss_type == LossType.RESCALED_MSE:
         #         # Divide by 1000 for equivalence with initial implementation.
         #         # Without a factor of 1/1000, the VB term hurts the MSE term.
@@ -454,8 +549,8 @@ class DDPM(nn.Module):
 
     def forward(self, x, *args, **kwargs):
         # this if statement allows forward() to be used during along with DataParallel to use the q_sample function
-        if 'do_qsample' in kwargs.keys():
-            return self.q_sample(x, t=kwargs['t'],noise=kwargs['noise'])
+        if "do_qsample" in kwargs.keys():
+            return self.q_sample(x, t=kwargs["t"], noise=kwargs["noise"])
         else:
             t, weights = self.t_sampler.sample(batch_size=x.shape[0], device=x.device)
             return self.p_losses(x, t, weights, *args, **kwargs)
@@ -464,7 +559,7 @@ class DDPM(nn.Module):
         lr = self.learning_rate
         params = list(self.model.parameters())
         if self.learn_logvar:
-            print('Diffusion model optimizing logvar')
+            print("Diffusion model optimizing logvar")
             params.append(self.logvar)
         opt = torch.optim.AdamW(params, lr=lr)
         return opt

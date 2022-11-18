@@ -46,9 +46,9 @@ class Quantizer_impl(nn.Module):
         flat_inputs = x.permute(0, 2, 3, 1).contiguous().view(-1, self.embed_dim)
         # Calculate distances
         distances = (
-            (flat_inputs ** 2).sum(dim=1, keepdim=True)
+            (flat_inputs**2).sum(dim=1, keepdim=True)
             - 2 * torch.mm(flat_inputs, self.weight.t())
-            + (self.weight ** 2).sum(dim=1, keepdim=True).t()
+            + (self.weight**2).sum(dim=1, keepdim=True).t()
         )
 
         # Encoding
@@ -173,8 +173,7 @@ class BaselineVQVAE2D(VQVAEBase, nn.Module):
         vq_decay=0.5,
         n_input_channels=1,
         padding=(0, 0),
-        encoding_type = 'quantised'
-
+        encoding_type="quantised",
     ):
         super().__init__()
         self.n_levels = n_levels
@@ -257,7 +256,11 @@ class BaselineVQVAE2D(VQVAEBase, nn.Module):
             modules.append(
                 nn.ConvTranspose2d(
                     self.n_channels // (1 if i == 0 else 2),
-                    (self.n_input_channels if i == self.n_levels - 1 else self.n_channels // 2),
+                    (
+                        self.n_input_channels
+                        if i == self.n_levels - 1
+                        else self.n_channels // 2
+                    ),
                     4,
                     stride=2,
                     padding=1,
@@ -317,48 +320,51 @@ class BaselineVQVAE2D(VQVAEBase, nn.Module):
         return [encoding_indices]
 
     def get_ldm_inputs(self, images: torch.Tensor) -> List[torch.Tensor]:
-        if self.encoding_type == 'non_quantised':
+        if self.encoding_type == "non_quantised":
             return self.encode(images)[0]
-        elif self.encoding_type == 'indices':
-            #return self.index_quantize(images)[0][:,None,...].float()
+        elif self.encoding_type == "indices":
+            # return self.index_quantize(images)[0][:,None,...].float()
             indices = self.index_quantize(images)[0][:, None, ...].float()
-            indices_norm = (indices/ (self.n_embed - 1))/0.5 -1
+            indices_norm = (indices / (self.n_embed - 1)) / 0.5 - 1
             return indices_norm
-        elif self.encoding_type == 'quantised':
+        elif self.encoding_type == "quantised":
             encoding = self.encode(images)[0]
             quantizations, quantization_losses = self.quantize([encoding])
             return quantizations[0]
-        elif self.encoding_type == 'downsampling':
-            downsample_factor = pow(2,self.n_levels)
-            downsampled = F.interpolate(images, scale_factor=1/downsample_factor)
+        elif self.encoding_type == "downsampling":
+            downsample_factor = pow(2, self.n_levels)
+            downsampled = F.interpolate(images, scale_factor=1 / downsample_factor)
             return downsampled
 
     def reconstruct_ldm_outputs(self, encodings: torch.Tensor) -> torch.Tensor:
-        if self.encoding_type == 'non_quantised':
+        if self.encoding_type == "non_quantised":
             quantizations, quantization_losses = self.quantize([encodings])
             reconstruction = self.decode(quantizations)
             return reconstruction
-        elif self.encoding_type == 'indices':
-            indices_unnormed = torch.round(((encodings + 1)*0.5) * (self.n_embed - 1)).int()
+        elif self.encoding_type == "indices":
+            indices_unnormed = torch.round(
+                ((encodings + 1) * 0.5) * (self.n_embed - 1)
+            ).int()
             indices_unnormed.clamp_(0, self.n_embed - 1)
             return self.decode_samples([indices_unnormed])
-        elif self.encoding_type == 'quantised':
+        elif self.encoding_type == "quantised":
             reconstruction = self.decode([encodings])
             return reconstruction
-        elif self.encoding_type == 'downsampling':
-            downsample_factor = pow(2,self.n_levels)
+        elif self.encoding_type == "downsampling":
+            downsample_factor = pow(2, self.n_levels)
             upsampled = F.interpolate(encodings, scale_factor=downsample_factor)
             return upsampled
 
     def pad_ldm_inputs(self, encodings: torch.Tensor) -> torch.Tensor:
-        return torch.nn.functional.pad(encodings, (0, self.padding[0],
-                                                   0, self.padding[1]))
+        return torch.nn.functional.pad(
+            encodings, (0, self.padding[0], 0, self.padding[1])
+        )
 
     def crop_ldm_inputs(self, encodings: torch.Tensor) -> torch.Tensor:
-        padding = [-p if p!=0 else encodings.shape[i+2] for i,p in enumerate(self.padding)]
-        return encodings[:, :,
-               :padding[0],
-               :padding[1]]
+        padding = [
+            -p if p != 0 else encodings.shape[i + 2] for i, p in enumerate(self.padding)
+        ]
+        return encodings[:, :, : padding[0], : padding[1]]
 
     def decode_samples(self, embedding_indices: List[torch.Tensor]) -> torch.Tensor:
         samples_codes = self.quantizer[0].embed(embedding_indices[0])
@@ -366,7 +372,9 @@ class BaselineVQVAE2D(VQVAEBase, nn.Module):
 
         return samples_images
 
-    def forward(self, images: torch.Tensor, get_ldm_inputs=False) -> Dict[str, List[torch.Tensor]]:
+    def forward(
+        self, images: torch.Tensor, get_ldm_inputs=False
+    ) -> Dict[str, List[torch.Tensor]]:
         # if statement allows the use of forward() in DataParallel mode to get ldm inputs
         if get_ldm_inputs:
             return self.get_ldm_inputs(images)

@@ -58,7 +58,7 @@ class PerceptualLoss(torch.nn.Module):
         fake_3d_axis: Tuple[int, ...] = (2, 3, 4),
         lpips_kwargs: Dict = None,
         lpips_normalize: bool = True,
-        spatial: bool = False
+        spatial: bool = False,
     ):
         super(PerceptualLoss, self).__init__()
 
@@ -109,10 +109,7 @@ class PerceptualLoss(torch.nn.Module):
         )
         self.perceptual_factor = 1
 
-
-    def forward(
-        self, y: torch.Tensor, y_pred : torch.Tensor
-    ) -> torch.Tensor:
+    def forward(self, y: torch.Tensor, y_pred: torch.Tensor) -> torch.Tensor:
         # Unpacking elements
         y = y.float()
         y_pred = y_pred.float()
@@ -137,10 +134,6 @@ class PerceptualLoss(torch.nn.Module):
                 )
                 * self.perceptual_factor
             )
-
-
-
-
 
         return loss
 
