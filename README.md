@@ -31,6 +31,7 @@ python get_datasets.py --data_root=${data_root}
 N.B. If the error "The daily quota of the file img_align_celeba.zip is exceeded and it can't be downloaded" is thrown,
 you need to download these files manually from the GDrive and place them in ${data_root}/CelebA/raw/, 
 [see here](https://github.com/pytorch/vision/issues/1920#issuecomment-852237902). You can then run
+
 ```bash
 python get_datasets.py --data_root=${data_root} --download_celeba=False
 ```

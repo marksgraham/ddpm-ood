@@ -131,71 +131,6 @@ def get_training_data_loader(
     return train_loader, val_loader
 
 
-
-def get_test_data_dicts(
-        ids_path: str,
-        derivative_dir: str,
-        shuffle: bool = False,
-):
-    """ Get data dicts for data loaders."""
-    df = pd.read_csv(ids_path, sep="\t")
-    if shuffle:
-        df = df.sample(frac=1, random_state=1)
-
-    suffix = "MNI152NLin2009aSym"
-
-    data_dicts = []
-    for index, row in df.iterrows():
-        for slice in range(89, 93):
-            data_dicts.append(
-                {
-                    "image": (f"/data/{derivative_dir}/"
-                              f"{row['id']}_slice-{slice}_ses-1_space-{suffix}_FLAIR.npy"),
-                    "lesion": (f"/data/{derivative_dir}/"
-                               f"{row['id']}_slice-{slice}_ses-1_space-MNI152NLin2009aSym_lesionmask.npy")
-                }
-            )
-
-    print(f"Found {len(data_dicts)} subjects.")
-    return data_dicts
-
-
-def get_test_dataloader(
-        batch_size: int,
-        test_ids: str,
-        derivative_dir: str,
-        num_workers: int = 8,
-        start: int = 0,
-        end: int = 18000
-):
-    # Define transformations
-    val_transforms = transforms.Compose([
-        transforms.LoadImaged(keys=['image', "lesion"]),
-        transforms.ScaleIntensityd(keys=['image']),
-        transforms.AddChanneld(keys=['image', "lesion"]),
-        transforms.CenterSpatialCropd(keys=["image", "lesion"], roi_size=[192, 224]),
-        transforms.ToTensord(keys=['image', "lesion"])
-    ])
-
-    val_dicts = get_test_data_dicts(
-        ids_path=test_ids,
-        derivative_dir=derivative_dir,
-        shuffle=False,
-    )
-    val_ds = Dataset(
-        data=val_dicts[start:end],
-        transform=val_transforms
-    )
-    val_loader = DataLoader(
-        dataset=val_ds,
-        batch_size=batch_size,
-        num_workers=num_workers,
-        pin_memory=True
-    )
-
-    return val_loader
-
-
 # ----------------------------------------------------------------------------------------------------------------------
 # TEST TIME FUNCTIONS
 # ----------------------------------------------------------------------------------------------------------------------
@@ -269,26 +204,6 @@ def get_figure(
         a_max=1
     )
 
-    # img_npy_2 = np.clip(
-    #     a=img[2, 0, :, :].cpu().numpy(),
-    #     a_min=0,
-    #     a_max=1
-    # )
-    # recons_npy_2 = np.clip(
-    #     a=recons[2, 0, :, :].cpu().numpy(),
-    #     a_min=0,
-    #     a_max=1
-    # )
-    # img_npy_3 = np.clip(
-    #     a=img[3, 0, :, :].cpu().numpy(),
-    #     a_min=0,
-    #     a_max=1
-    # )
-    # recons_npy_3 = np.clip(
-    #     a=recons[3, 0, :, :].cpu().numpy(),
-    #     a_min=0,
-    #     a_max=1
-    # )
 
     img_row_0 = np.concatenate(
         (
@@ -300,15 +215,6 @@ def get_figure(
         axis=1
     )
 
-    # img_row_1 = np.concatenate(
-    #     (
-    #         img_npy_2,
-    #         recons_npy_2,
-    #         img_npy_3,
-    #         recons_npy_3,
-    #     ),
-    #     axis=1
-    # )
 
     img = np.concatenate(
         (

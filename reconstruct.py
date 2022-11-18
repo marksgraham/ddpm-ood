@@ -32,15 +32,14 @@ def parse_args():
     parser.add_argument("--validation_ids", help="Location of file with validation ids.")
     parser.add_argument("--in_ids", help="Location of file with inlier ids.")
     parser.add_argument("--out_ids", help="List of location of file with outlier ids.")
-    parser.add_argument("--config_vqvae_file", default='None', help="Location of VQ-VAE config. None if not training a latent"
-                                                                    "diffusion model.")
+    parser.add_argument("--config_vqvae_file", default='None', help="Location of VQ-VAE config. None if not training a latent diffusion model.")
     parser.add_argument("--vqvae_checkpoint", help="Path to checkpoint file.")
     parser.add_argument("--config_diffusion_file", help="Location of config.")
     parser.add_argument("--vqvae_uri", help="Path readable by load_model.")
 
     # inference param
     parser.add_argument("--batch_size", type=int, default=256, help="Batch size.")
-    parser.add_argument("--augmentation", type=int, default=1, help="Use of augmentation, 1 (True) or 0 (False).")
+    parser.add_argument("--augmentation", type=int, default=0, help="Use of augmentation, 1 (True) or 0 (False).")
     parser.add_argument("--num_workers", type=int, default=8, help="Number of loader workers")
     parser.add_argument("--first_n_val", default=None, help="Only run on the first n samples from the val dataset.")
     parser.add_argument("--first_n", default=None, help="Only run on the first n samples from each dataset.")
@@ -125,7 +124,7 @@ def main(args):
             checkpoint = torch.load(args.vqvae_checkpoint)
         else:
             checkpoint = torch.load(args.vqvae_checkpoint)
-        print(f'Loaded VQVAE checkpoing {args.vqvae_checkpoint}')
+        print(f'Loaded VQVAE checkpoint  {args.vqvae_checkpoint}')
         vqvae.load_state_dict(checkpoint['network'])
         vqvae.eval()
     else:
