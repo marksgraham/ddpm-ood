@@ -1,5 +1,9 @@
 #  Denoising Diffusion Models for Out-of-Distribution Detection
 
+<p align="center">
+  <img width="500" height="190" src="https://user-images.githubusercontent.com/7947315/202758564-395728c9-fc2f-44f6-9846-2bedbb096729.svg">
+</p>
+
 This repo does provides code for the paper 'Denoising Diffusion Models for Out-of-Distribution Detection'.
 
 It is based on the excellent [Latent Diffusion repository](https://github.com/CompVis/latent-diffusion) 
