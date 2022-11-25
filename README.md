@@ -1,6 +1,6 @@
 <h1 align="center">Denoising Diffusion Models for Out-of-Distribution Detection</h1>
 <p align="center">
-Code to reproduce results in <a href="https://arxiv.org/abs/2211.07740">Denoising Diffusion Models for Out-of-Distribution Detection</a>.
+PyTorch code to reproduce results in <a href="https://arxiv.org/abs/2211.07740">Denoising Diffusion Models for Out-of-Distribution Detection</a>.
 
 </p>
 
@@ -102,7 +102,7 @@ This repository is based on the excellent [Latent Diffusion repository](https://
 
 ## Citation
 If you use this codebase, please cite 
-```
+```bib
 @article{graham2022denoising,
   title={Denoising Diffusion Models for Out-of-Distribution Detection},
   author={Graham, Mark S and Pinaya, Walter HL and Tudosiu, Petru-Daniel
