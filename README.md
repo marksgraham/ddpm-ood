@@ -1,13 +1,15 @@
-#  Denoising Diffusion Models for Out-of-Distribution Detection
+<h1 align="center">Denoising Diffusion Models for Out-of-Distribution Detection</h1>
+<p align="center">
+Code to reproduce results in <a href="https://arxiv.org/abs/2211.07740">Denoising Diffusion Models for Out-of-Distribution Detection</a>.
+
+</p>
 
 <p align="center">
   <img width="800" height="300" src="https://user-images.githubusercontent.com/7947315/202760559-5f053775-122b-47ba-a729-dc1d3485c660.svg">
 </p>
 
-This repo provides code for the paper 'Denoising Diffusion Models for Out-of-Distribution Detection'.
 
-It is based on the excellent [Latent Diffusion repository](https://github.com/CompVis/latent-diffusion) 
-(although the models in this work are vanilla diffusion models) - many thanks!
+
 ## Running the code
 
 ### Install
@@ -94,5 +96,18 @@ python ood_detection.py \
 --model_name=fashionmnist
 ```
 
+## Acknowledgements
+This repository is based on the excellent [Latent Diffusion repository](https://github.com/CompVis/latent-diffusion) 
+(although the models in this work are vanilla diffusion models) - many thanks!
 
-# 
+## Citation
+If you use this codebase, please cite 
+```
+@article{graham2022denoising,
+  title={Denoising Diffusion Models for Out-of-Distribution Detection},
+  author={Graham, Mark S and Pinaya, Walter HL and Tudosiu, Petru-Daniel
+          and Nachev, Parashkev and Ourselin, Sebastien and Cardoso, M Jorge},
+  journal={arXiv preprint arXiv:2211.07740},
+  year={2022}
+}
+```
