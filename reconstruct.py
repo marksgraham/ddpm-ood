@@ -1,5 +1,6 @@
 import argparse
 import os
+import sys
 import warnings
 from pathlib import Path
 from time import time
@@ -7,11 +8,13 @@ from time import time
 import numpy as np
 import pandas as pd
 import torch
+import torch.distributed as dist
 from monai.config import print_config
 from monai.utils import set_determinism
 from omegaconf import OmegaConf
 from skimage.metrics import structural_similarity as ssim
 from torch.nn.functional import pad as torchpad
+from torch.nn.parallel import DistributedDataParallel
 from tqdm import tqdm
 
 from src.models.ddpm_2d import DDPM
@@ -113,6 +116,23 @@ def main(args):
     for k, v in vars(args).items():
         print(f"  {k}: {v}")
 
+    # initialise DDP if run was launched with torchrun
+    if "LOCAL_RANK" in os.environ:
+        print("Setting up DDP.")
+        ddp = True
+        # disable logging for processes except 0 on every node
+        local_rank = int(os.environ["LOCAL_RANK"])
+        if local_rank != 0:
+            f = open(os.devnull, "w")
+            sys.stdout = sys.stderr = f
+
+        # initialize the distributed training process, every GPU runs in a process
+        dist.init_process_group(backend="nccl", init_method="env://")
+        device = torch.device(f"cuda:{local_rank}")
+    else:
+        ddp = False
+        device = "cuda:0" if torch.cuda.is_available() else "cpu"
+
     print("Getting data...")
     print(f"Using first_n_val argument for for val: {args.first_n_val}")
 
@@ -164,10 +184,12 @@ def main(args):
     diffusion = DDPM(**config_ldm["ldm"].get("params", dict()))
 
     print(f"Let's use {torch.cuda.device_count()} GPUs!")
-    device = torch.device("cuda")
-    if torch.cuda.device_count() > 1:
-        vqvae = torch.nn.DataParallel(vqvae)
-        diffusion = torch.nn.DataParallel(diffusion)
+    vqvae = vqvae.to(device)
+    diffusion = diffusion.to(device)
+    if ddp:
+        if args.config_vqvae_file != "None":
+            vqvae = DistributedDataParallel(vqvae, device_ids=[device])
+        diffusion = DistributedDataParallel(diffusion, device_ids=[device])
 
     vqvae = vqvae.to(device)
     diffusion = diffusion.to(device)
@@ -420,6 +442,8 @@ def main(args):
                 results_df = pd.DataFrame(results_list)
                 results_df.to_csv(out_dir / f"results_{dataset_name}.csv")
 
+
+# to run using DDP, run torchrun --nproc_per_node=1 --nnodes=1 --node_rank=0  reconstruct.py --args
 
 if __name__ == "__main__":
     args = parse_args()

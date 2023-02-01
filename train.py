@@ -189,7 +189,7 @@ def main(args):
     )
 
 
-# to run using DDP, run torchrun --nproc_per_node=1 --nnodes=1 --node_rank=0  train_seg_ddpm.py --args
+# to run using DDP, run torchrun --nproc_per_node=1 --nnodes=1 --node_rank=0  train.py --args
 if __name__ == "__main__":
     args = parse_args()
     main(args)
