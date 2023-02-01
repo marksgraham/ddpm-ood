@@ -94,6 +94,23 @@ def parse_args():
 
 
 def main(args):
+    # initialise DDP if run was launched with torchrun
+    if "LOCAL_RANK" in os.environ:
+        print("Setting up DDP.")
+        ddp = True
+        # disable logging for processes except 0 on every node
+        local_rank = int(os.environ["LOCAL_RANK"])
+        if local_rank != 0:
+            f = open(os.devnull, "w")
+            sys.stdout = sys.stderr = f
+
+        # initialize the distributed training process, every GPU runs in a process
+        dist.init_process_group(backend="nccl", init_method="env://")
+        device = torch.device(f"cuda:{local_rank}")
+    else:
+        ddp = False
+        device = "cuda:0" if torch.cuda.is_available() else "cpu"
+
     set_determinism(seed=args.seed)
     print_config()
     run_dir = Path(args.output_dir) / args.model_name
@@ -115,23 +132,6 @@ def main(args):
     print(f"Arguments: {str(args)}")
     for k, v in vars(args).items():
         print(f"  {k}: {v}")
-
-    # initialise DDP if run was launched with torchrun
-    if "LOCAL_RANK" in os.environ:
-        print("Setting up DDP.")
-        ddp = True
-        # disable logging for processes except 0 on every node
-        local_rank = int(os.environ["LOCAL_RANK"])
-        if local_rank != 0:
-            f = open(os.devnull, "w")
-            sys.stdout = sys.stderr = f
-
-        # initialize the distributed training process, every GPU runs in a process
-        dist.init_process_group(backend="nccl", init_method="env://")
-        device = torch.device(f"cuda:{local_rank}")
-    else:
-        ddp = False
-        device = "cuda:0" if torch.cuda.is_available() else "cpu"
 
     print("Getting data...")
     print(f"Using first_n_val argument for for val: {args.first_n_val}")

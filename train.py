@@ -73,20 +73,6 @@ def parse_args():
 
 
 def main(args):
-    set_determinism(seed=args.seed)
-    print_config()
-    run_dir = Path(args.output_dir) / args.model_name
-    if run_dir.exists() and (run_dir / "checkpoint.pth").exists():
-        resume = True
-    else:
-        resume = False
-        run_dir.mkdir(exist_ok=True, parents=True)
-
-    print(f"Run directory: {str(run_dir)}")
-    print(f"Arguments: {str(args)}")
-    for k, v in vars(args).items():
-        print(f"  {k}: {v}")
-
     # initialise DDP if run was launched with torchrun
     if "LOCAL_RANK" in os.environ:
         print("Setting up DDP.")
@@ -103,6 +89,20 @@ def main(args):
     else:
         ddp = False
         device = "cuda:0" if torch.cuda.is_available() else "cpu"
+
+    set_determinism(seed=args.seed)
+    print_config()
+    run_dir = Path(args.output_dir) / args.model_name
+    if run_dir.exists() and (run_dir / "checkpoint.pth").exists():
+        resume = True
+    else:
+        resume = False
+        run_dir.mkdir(exist_ok=True, parents=True)
+
+    print(f"Run directory: {str(run_dir)}")
+    print(f"Arguments: {str(args)}")
+    for k, v in vars(args).items():
+        print(f"  {k}: {v}")
 
     writer_train = SummaryWriter(log_dir=str(run_dir / "train"))
     writer_val = SummaryWriter(log_dir=str(run_dir / "val"))
