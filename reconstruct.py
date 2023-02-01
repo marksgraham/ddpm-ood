@@ -1,27 +1,27 @@
 import argparse
+import os
 import warnings
 from pathlib import Path
+from time import time
 
+import numpy as np
 import pandas as pd
 import torch
 from monai.config import print_config
 from monai.utils import set_determinism
 from omegaconf import OmegaConf
-
-from src.models.vqvae_2d import BaselineVQVAE2D
-from src.models.vqvae_dummy import DummyVQVAE
-from src.models.ddpm_2d import DDPM
-from src.models.plms import PLMSSampler
-from src.training_and_testing.util import get_training_data_loader
-from tqdm import tqdm
-import numpy as np
-import os
-from src.training_and_testing.PerceptualLoss import PerceptualLoss
 from skimage.metrics import structural_similarity as ssim
 from torch.nn.functional import pad as torchpad
+from tqdm import tqdm
+
+from src.models.ddpm_2d import DDPM
+from src.models.plms import PLMSSampler
+from src.models.vqvae_2d import BaselineVQVAE2D
+from src.models.vqvae_dummy import DummyVQVAE
+from src.training_and_testing.PerceptualLoss import PerceptualLoss
+from src.training_and_testing.util import get_training_data_loader
 
 warnings.filterwarnings("ignore")
-from time import time
 
 
 def parse_args():
@@ -30,9 +30,7 @@ def parse_args():
     parser.add_argument("--seed", type=int, default=2, help="Random seed to use.")
     parser.add_argument("--output_dir", help="Location for models.")
     parser.add_argument("--model_name", help="Name of model.")
-    parser.add_argument(
-        "--validation_ids", help="Location of file with validation ids."
-    )
+    parser.add_argument("--validation_ids", help="Location of file with validation ids.")
     parser.add_argument("--in_ids", help="Location of file with inlier ids.")
     parser.add_argument("--out_ids", help="List of location of file with outlier ids.")
     parser.add_argument(
@@ -52,9 +50,7 @@ def parse_args():
         default=0,
         help="Use of augmentation, 1 (True) or 0 (False).",
     )
-    parser.add_argument(
-        "--num_workers", type=int, default=8, help="Number of loader workers"
-    )
+    parser.add_argument("--num_workers", type=int, default=8, help="Number of loader workers")
     parser.add_argument(
         "--first_n_val",
         default=None,
@@ -70,21 +66,11 @@ def parse_args():
         default=None,
         help="Select a specific checkpoint to evaluate on.",
     )
-    parser.add_argument(
-        "--drop_last", default=False, help="Drop last non-complete batch.."
-    )
-    parser.add_argument(
-        "--is_grayscale", type=int, default=0, help="Is data grayscale."
-    )
-    parser.add_argument(
-        "--run_val", type=int, default=1, help="Run reconstructions on val set."
-    )
-    parser.add_argument(
-        "--run_in", type=int, default=1, help="Run reconstructions on in set."
-    )
-    parser.add_argument(
-        "--run_out", type=int, default=1, help="Run reconstructions on out set."
-    )
+    parser.add_argument("--drop_last", default=False, help="Drop last non-complete batch..")
+    parser.add_argument("--is_grayscale", type=int, default=0, help="Is data grayscale.")
+    parser.add_argument("--run_val", type=int, default=1, help="Run reconstructions on val set.")
+    parser.add_argument("--run_in", type=int, default=1, help="Run reconstructions on in set.")
+    parser.add_argument("--run_out", type=int, default=1, help="Run reconstructions on out set.")
 
     # sampling options
     parser.add_argument(
@@ -219,9 +205,7 @@ def main(args):
     t_vals = diffusion_plms.ddim_timesteps[:: args.inference_skip_factor]
     total_steps = 0
     for t in t_vals:
-        steps_for_this_t = diffusion_plms.ddim_timesteps[
-            diffusion_plms.ddim_timesteps <= t
-        ]
+        steps_for_this_t = diffusion_plms.ddim_timesteps[diffusion_plms.ddim_timesteps <= t]
         total_steps += len(steps_for_this_t)
     print(
         f"Using num_inference steps {args.num_inference_steps} and a total of {len(t_vals)} different reconstruction"
@@ -268,9 +252,7 @@ def main(args):
                         S=args.num_inference_steps,
                         batch_size=1,
                         shape=list(in_loader.dataset[0]["image"].shape),
-                        timesteps=diffusion_plms.ddim_timesteps[
-                            diffusion_plms.ddim_timesteps <= t
-                        ],
+                        timesteps=diffusion_plms.ddim_timesteps[diffusion_plms.ddim_timesteps <= t],
                         x_T=latent_denoised,
                         verbose=False,
                     )
@@ -286,20 +268,14 @@ def main(args):
                                         (2, 2, 2, 2),
                                     ),
                                 ).numpy()
-                                perceptual_difference = (
-                                    perceptual_difference_spatial.mean()
-                                )
-                                perceptual_difference_spatial = (
-                                    perceptual_difference_spatial[:, :, 2:-2, 2:-2]
-                                )
+                                perceptual_difference = perceptual_difference_spatial.mean()
+                                perceptual_difference_spatial = perceptual_difference_spatial[
+                                    :, :, 2:-2, 2:-2
+                                ]
 
                                 ssim_metric = 1 - ssim(
                                     image[b, ...].squeeze().cpu().numpy(),
-                                    latent_denoised[b, ...]
-                                    .clamp(0, 1)
-                                    .squeeze()
-                                    .cpu()
-                                    .numpy(),
+                                    latent_denoised[b, ...].clamp(0, 1).squeeze().cpu().numpy(),
                                 )
                             else:
                                 # all other images are 32x32 and colour
@@ -308,19 +284,11 @@ def main(args):
                                     image[b, None, ...].cpu(),
                                     latent_denoised[b, None, ...].cpu(),
                                 ).numpy()
-                                perceptual_difference = (
-                                    perceptual_difference_spatial.mean()
-                                )
+                                perceptual_difference = perceptual_difference_spatial.mean()
                                 ssim_metric = 1 - ssim(
+                                    np.transpose(image[b, ...].squeeze().cpu().numpy(), (1, 2, 0)),
                                     np.transpose(
-                                        image[b, ...].squeeze().cpu().numpy(), (1, 2, 0)
-                                    ),
-                                    np.transpose(
-                                        latent_denoised[b, ...]
-                                        .clamp(0, 1)
-                                        .squeeze()
-                                        .cpu()
-                                        .numpy(),
+                                        latent_denoised[b, ...].clamp(0, 1).squeeze().cpu().numpy(),
                                         (1, 2, 0),
                                     ),
                                     multichannel=True,
@@ -329,11 +297,7 @@ def main(args):
                         se = np.mean(
                             np.square(
                                 image[b, ...].squeeze().cpu().numpy()
-                                - latent_denoised[b, ...]
-                                .clamp(0, 1)
-                                .squeeze()
-                                .cpu()
-                                .numpy()
+                                - latent_denoised[b, ...].clamp(0, 1).squeeze().cpu().numpy()
                             ),
                             axis=0,
                         )
@@ -341,28 +305,22 @@ def main(args):
                         # save val-set metrics for z-scoring
                         if "val" in dataset_name:
                             if batch_idx == 0 and idx == 0 and b == 0:
-                                shape = (
-                                    len(t_vals),
-                                ) + perceptual_difference_spatial.shape[2:]
-                                shape_mse = (
-                                    len(t_vals),
-                                ) + perceptual_difference_spatial.shape[2:]
+                                shape = (len(t_vals),) + perceptual_difference_spatial.shape[2:]
+                                shape_mse = (len(t_vals),) + perceptual_difference_spatial.shape[2:]
                                 all_perceptual_difference_x = np.zeros(shape)
                                 all_perceptual_difference_x2 = np.zeros(shape)
                                 all_mse_x = np.zeros(shape)
                                 all_mse_x2 = np.zeros(shape)
-                            all_perceptual_difference_x[
-                                idx, :
-                            ] += perceptual_difference_spatial[0, 0, ...]
+                            all_perceptual_difference_x[idx, :] += perceptual_difference_spatial[
+                                0, 0, ...
+                            ]
                             all_perceptual_difference_x2[idx, :] += np.square(
                                 perceptual_difference_spatial[0, 0, ...]
                             )
                             all_mse_x[idx, :] += se
                             all_mse_x2[idx, :] += np.square(se)
                         filename = batch["image_meta_dict"]["filename_or_obj"][b]
-                        stem = (
-                            Path(filename).stem.replace(".nii", "").replace(".gz", "")
-                        )
+                        stem = Path(filename).stem.replace(".nii", "").replace(".gz", "")
                         result_dict = {
                             "filename": stem,
                             "type": dataset_name,
@@ -379,8 +337,7 @@ def main(args):
                 # compute mean/std for metrics
                 all_perceptual_difference_mean = all_perceptual_difference_x / n
                 all_perceptual_difference_std = np.sqrt(
-                    all_perceptual_difference_x2 / n
-                    - np.square(all_perceptual_difference_mean)
+                    all_perceptual_difference_x2 / n - np.square(all_perceptual_difference_mean)
                 )
                 all_mse_mean = all_mse_x / n
                 all_mse_std = np.sqrt(all_mse_x2 / n - np.square(all_mse_mean))

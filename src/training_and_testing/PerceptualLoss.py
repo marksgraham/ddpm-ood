@@ -1,12 +1,7 @@
-from typing import Dict, List, Tuple
+from typing import Dict, Tuple
 
 import torch
-import torch.nn as nn
-import torch.nn.functional as F
 from lpips import LPIPS
-from numpy import fromfunction
-from torch.fft import fftn
-from torch.nn.modules.loss import _Loss
 
 
 # It is a torch.nn.Module to be able to move the network used for the perceptual loss to the desired compute devices
@@ -63,9 +58,7 @@ class PerceptualLoss(torch.nn.Module):
         super(PerceptualLoss, self).__init__()
 
         if not (dimensions in [2, 3]):
-            raise NotImplementedError(
-                "Perceptual loss is implemented only in 2D and 3D."
-            )
+            raise NotImplementedError("Perceptual loss is implemented only in 2D and 3D.")
 
         if dimensions == 3 and is_fake_3d is False:
             raise NotImplementedError("True 3D perceptual loss is not implemented yet.")
@@ -129,9 +122,7 @@ class PerceptualLoss(torch.nn.Module):
                 )
         else:
             loss = (
-                self.perceptual_function.forward(
-                    y, y_pred, normalize=self.lpips_normalize
-                )
+                self.perceptual_function.forward(y, y_pred, normalize=self.lpips_normalize)
                 * self.perceptual_factor
             )
 
@@ -163,9 +154,7 @@ class PerceptualLoss(torch.nn.Module):
         y_slices = (
             y.permute(*permute_dims)
             .contiguous()
-            .view(
-                -1, y.shape[view_dims[0]], y.shape[view_dims[1]], y.shape[view_dims[2]]
-            )
+            .view(-1, y.shape[view_dims[0]], y.shape[view_dims[1]], y.shape[view_dims[2]])
         )
 
         y_pred_slices = (

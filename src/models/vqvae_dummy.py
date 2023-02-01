@@ -1,6 +1,7 @@
-from torch import nn
+from typing import Dict, List
+
 import torch
-from typing import Dict, List, Sequence, Union, Tuple
+from torch import nn
 
 
 class DummyVQVAE(nn.Module):
@@ -37,9 +38,7 @@ class DummyVQVAE(nn.Module):
 
         return samples_images
 
-    def forward(
-        self, images: torch.Tensor, get_ldm_inputs=False
-    ) -> Dict[str, List[torch.Tensor]]:
+    def forward(self, images: torch.Tensor, get_ldm_inputs=False) -> Dict[str, List[torch.Tensor]]:
         # if statement allows the use of forward() in DataParallel mode to get ldm inputs
         if get_ldm_inputs:
             return self.get_ldm_inputs(images)

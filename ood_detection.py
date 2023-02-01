@@ -5,8 +5,6 @@ from pathlib import Path
 import pandas as pd
 from monai.config import print_config
 from monai.utils import set_determinism
-
-
 from sklearn.metrics import roc_auc_score
 
 from src.models.sampling_utils import make_ddim_timesteps
@@ -27,9 +25,7 @@ def parse_args():
         default=1000,
         help="Maximum T to consider reconstructions from.",
     )
-    parser.add_argument(
-        "--t_skip", type=int, default=1, help="Only use every n reconstructions."
-    )
+    parser.add_argument("--t_skip", type=int, default=1, help="Only use every n reconstructions.")
 
     args = parser.parse_args()
     return args
@@ -45,7 +41,7 @@ def main(args):
     run_dir = Path(args.output_dir) / model
     print(f"Run directory: {str(run_dir)}")
 
-    out_dir = run_dir / "ood"
+    out_dir = run_dir / "ood_reconstructv6_fullrun"
     out_dir.mkdir(exist_ok=True)
     results_df_val = pd.read_csv(out_dir / "results_val.csv")
     all_t_values = results_df_val["t"].unique()
@@ -110,9 +106,7 @@ def main(args):
                 results_df_val.groupby(["t"])
                 .agg({target: ["mean", "std"]})[target]
                 .reset_index()
-                .rename(
-                    {"mean": f"val_mean_{target}", "std": f"val_std_{target}"}, axis=1
-                )
+                .rename({"mean": f"val_mean_{target}", "std": f"val_std_{target}"}, axis=1)
             )
             results_df = results_df.merge(results_df_val_agg, on=["t"], how="left")
             results_df[f"z_score_{target}"] = (
@@ -120,9 +114,7 @@ def main(args):
             ) / results_df[f"val_std_{target}"]
 
         num_in_images = results_df.loc[results_df["type"] == "in"]["filename"].nunique()
-        num_out_images = results_df.loc[results_df["type"] == "out"][
-            "filename"
-        ].nunique()
+        num_out_images = results_df.loc[results_df["type"] == "out"]["filename"].nunique()
 
         # Get an average Z-score for each input
         if plot_target == "mse+perceptual":
@@ -136,23 +128,15 @@ def main(args):
 
         # calculate ROC scores
         # in-distribution scores/class
-        all_scores = results_df_mean.loc[results_df_mean["type"] == "in"][
-            [target]
-        ].values.tolist()
+        all_scores = results_df_mean.loc[results_df_mean["type"] == "in"][[target]].values.tolist()
         all_class = [0] * len(all_scores)
         # add OOD scores/class
         all_scores.extend(
-            results_df_mean.loc[results_df_mean["type"] == "out"][
-                [target]
-            ].values.tolist()
+            results_df_mean.loc[results_df_mean["type"] == "out"][[target]].values.tolist()
         )
         all_class.extend(
             [1]
-            * len(
-                results_df_mean.loc[results_df_mean["type"] == "out"][
-                    [target]
-                ].values.tolist()
-            )
+            * len(results_df_mean.loc[results_df_mean["type"] == "out"][[target]].values.tolist())
         )
         # compute ROC
         roc_score = roc_auc_score(all_class, all_scores)

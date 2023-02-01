@@ -5,12 +5,10 @@ from inspect import isfunction
 import numpy as np
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
 from tqdm import tqdm
 
-from .unet_v2 import UNetModel
 from .t_sampler import LossSecondMomentResampler, UniformSampler
-from ..training_and_testing.util import normal_kl
+from .unet_v2 import UNetModel
 
 
 def exists(x):
@@ -37,21 +35,15 @@ def extract(a, t, x_shape):
     return out.reshape(b, *((1,) * (len(x_shape) - 1)))
 
 
-def make_beta_schedule(
-    schedule, n_timestep, linear_start=1e-4, linear_end=2e-2, cosine_s=8e-3
-):
+def make_beta_schedule(schedule, n_timestep, linear_start=1e-4, linear_end=2e-2, cosine_s=8e-3):
     if schedule == "linear":
         betas = (
-            torch.linspace(
-                linear_start**0.5, linear_end**0.5, n_timestep, dtype=torch.float64
-            )
+            torch.linspace(linear_start**0.5, linear_end**0.5, n_timestep, dtype=torch.float64)
             ** 2
         )
 
     elif schedule == "cosine":
-        timesteps = (
-            torch.arange(n_timestep + 1, dtype=torch.float64) / n_timestep + cosine_s
-        )
+        timesteps = torch.arange(n_timestep + 1, dtype=torch.float64) / n_timestep + cosine_s
         alphas = timesteps / (1 + cosine_s) * np.pi / 2
         alphas = torch.cos(alphas).pow(2)
         alphas = alphas / alphas[0]
@@ -59,14 +51,9 @@ def make_beta_schedule(
         betas = np.clip(betas, a_min=0, a_max=0.999)
 
     elif schedule == "sqrt_linear":
-        betas = torch.linspace(
-            linear_start, linear_end, n_timestep, dtype=torch.float64
-        )
+        betas = torch.linspace(linear_start, linear_end, n_timestep, dtype=torch.float64)
     elif schedule == "sqrt":
-        betas = (
-            torch.linspace(linear_start, linear_end, n_timestep, dtype=torch.float64)
-            ** 0.5
-        )
+        betas = torch.linspace(linear_start, linear_end, n_timestep, dtype=torch.float64) ** 0.5
     else:
         raise ValueError(f"schedule '{schedule}' unknown.")
     return betas.numpy()
@@ -169,20 +156,16 @@ class DDPM(nn.Module):
         self.register_buffer(
             "sqrt_one_minus_alphas_cumprod", to_torch(np.sqrt(1.0 - alphas_cumprod))
         )
-        self.register_buffer(
-            "log_one_minus_alphas_cumprod", to_torch(np.log(1.0 - alphas_cumprod))
-        )
-        self.register_buffer(
-            "sqrt_recip_alphas_cumprod", to_torch(np.sqrt(1.0 / alphas_cumprod))
-        )
+        self.register_buffer("log_one_minus_alphas_cumprod", to_torch(np.log(1.0 - alphas_cumprod)))
+        self.register_buffer("sqrt_recip_alphas_cumprod", to_torch(np.sqrt(1.0 / alphas_cumprod)))
         self.register_buffer(
             "sqrt_recipm1_alphas_cumprod", to_torch(np.sqrt(1.0 / alphas_cumprod - 1))
         )
 
         # calculations for posterior q(x_{t-1} | x_t, x_0)
-        posterior_variance = (1 - self.v_posterior) * betas * (
-            1.0 - alphas_cumprod_prev
-        ) / (1.0 - alphas_cumprod) + self.v_posterior * betas
+        posterior_variance = (1 - self.v_posterior) * betas * (1.0 - alphas_cumprod_prev) / (
+            1.0 - alphas_cumprod
+        ) + self.v_posterior * betas
         # above: equal to 1. / (1. / (1. - alpha_cumprod_tm1) + alpha_t / beta_t)
         self.register_buffer("posterior_variance", to_torch(posterior_variance))
         # below: log calculation clipped because the posterior variance is 0 at the beginning of the diffusion chain
@@ -196,17 +179,12 @@ class DDPM(nn.Module):
         )
         self.register_buffer(
             "posterior_mean_coef2",
-            to_torch(
-                (1.0 - alphas_cumprod_prev) * np.sqrt(alphas) / (1.0 - alphas_cumprod)
-            ),
+            to_torch((1.0 - alphas_cumprod_prev) * np.sqrt(alphas) / (1.0 - alphas_cumprod)),
         )
 
         if self.parameterization == "eps":
             lvlb_weights = self.betas**2 / (
-                2
-                * self.posterior_variance
-                * to_torch(alphas)
-                * (1 - self.alphas_cumprod)
+                2 * self.posterior_variance * to_torch(alphas) * (1 - self.alphas_cumprod)
             )
         elif self.parameterization == "x0":
             lvlb_weights = (
@@ -249,9 +227,7 @@ class DDPM(nn.Module):
             + extract(self.posterior_mean_coef2, t, x_t.shape) * x_t
         )
         posterior_variance = extract(self.posterior_variance, t, x_t.shape)
-        posterior_log_variance_clipped = extract(
-            self.posterior_log_variance_clipped, t, x_t.shape
-        )
+        posterior_log_variance_clipped = extract(self.posterior_log_variance_clipped, t, x_t.shape)
         return posterior_mean, posterior_variance, posterior_log_variance_clipped
 
     def p_mean_variance(self, x, t, clip_denoised: bool, return_x0=False):
@@ -439,20 +415,16 @@ class DDPM(nn.Module):
         elif self.parameterization == "x0":
             target = x_start
         else:
-            raise NotImplementedError(
-                f"Paramterization {self.parameterization} not yet supported"
-            )
+            raise NotImplementedError(f"Paramterization {self.parameterization} not yet supported")
 
-        loss_simple = self.get_loss(model_output, target, mean=False).mean(
-            dim=[1, 2, 3]
-        )
-        loss_dict.update({f"loss_simple": (loss_simple * weights).mean()})
+        loss_simple = self.get_loss(model_output, target, mean=False).mean(dim=[1, 2, 3])
+        loss_dict.update({"loss_simple": (loss_simple * weights).mean()})
 
         logvar_t = self.logvar[t].to(x_start.device)
         loss = loss_simple / torch.exp(logvar_t) + logvar_t
         # loss = loss_simple / torch.exp(self.logvar) + self.logvar
         if self.learn_logvar:
-            loss_dict.update({f"loss_gamma": loss.mean()})
+            loss_dict.update({"loss_gamma": loss.mean()})
             loss_dict.update({"logvar": self.logvar.data.mean()})
 
         loss = self.l_simple_weight * loss.mean()
@@ -462,9 +434,7 @@ class DDPM(nn.Module):
             from util import normal_kl
 
             if self.parameterization == "eps":
-                x_recon = self.predict_start_from_noise(
-                    x_noisy, t=t, noise=model_output
-                )
+                x_recon = self.predict_start_from_noise(x_noisy, t=t, noise=model_output)
             elif self.parameterization == "x0":
                 x_recon = model_output
             model_mean, _, _ = self.q_posterior(x_start=x_recon, x_t=x_noisy, t=t)
@@ -485,20 +455,15 @@ class DDPM(nn.Module):
                     model_log_variance,
                 ).mean(dim=[1, 2, 3])
             loss_dict["loss_vlb"] = (
-                (kl * weights).mean()
-                * self.num_timesteps
-                / 1000
-                * self.vlb_loss_weighting
+                (kl * weights).mean() * self.num_timesteps / 1000 * self.vlb_loss_weighting
             )
             loss += loss_dict["loss_vlb"]
-            loss_dict.update({f"loss": loss})
+            loss_dict.update({"loss": loss})
             loss_dict["vlb_per_t"] = kl
             loss_dict["t"] = t
         elif self.learn_mean_only:
             if self.parameterization == "eps":
-                x_recon = self.predict_start_from_noise(
-                    x_noisy, t=t, noise=model_output
-                )
+                x_recon = self.predict_start_from_noise(x_noisy, t=t, noise=model_output)
             elif self.parameterization == "x0":
                 x_recon = model_output
             (
@@ -518,15 +483,12 @@ class DDPM(nn.Module):
             ).mean(dim=[1, 2, 3])
 
             loss_dict["loss_vlb"] = (
-                (kl * weights).mean()
-                * self.num_timesteps
-                / 1000
-                * self.vlb_loss_weighting
+                (kl * weights).mean() * self.num_timesteps / 1000 * self.vlb_loss_weighting
             )
             if loss_dict["loss_vlb"].sum() > 5:
                 print("debug")
             loss += loss_dict["loss_vlb"]
-            loss_dict.update({f"loss": loss})
+            loss_dict.update({"loss": loss})
             loss_dict["vlb_per_t"] = kl
             loss_dict["t"] = t
         else:

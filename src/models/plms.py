@@ -1,9 +1,7 @@
 """SAMPLING ONLY."""
 
-import torch
 import numpy as np
-from tqdm import tqdm
-from functools import partial
+import torch
 
 from .sampling_utils import (
     make_ddim_sampling_parameters,
@@ -31,9 +29,7 @@ class PLMSSampler(object):
                 attr = attr.to(torch.device("cuda"))
         setattr(self, name, attr)
 
-    def make_schedule(
-        self, ddim_num_steps, ddim_discretize="uniform", ddim_eta=0.0, verbose=True
-    ):
+    def make_schedule(self, ddim_num_steps, ddim_discretize="uniform", ddim_eta=0.0, verbose=True):
         if ddim_eta != 0:
             raise ValueError("ddim_eta must be 0 for PLMS")
         self.ddim_timesteps = make_ddim_timesteps(
@@ -52,14 +48,10 @@ class PLMSSampler(object):
 
         self.register_buffer("betas", to_torch(self.model.betas))
         self.register_buffer("alphas_cumprod", to_torch(alphas_cumprod))
-        self.register_buffer(
-            "alphas_cumprod_prev", to_torch(self.model.alphas_cumprod_prev)
-        )
+        self.register_buffer("alphas_cumprod_prev", to_torch(self.model.alphas_cumprod_prev))
 
         # calculations for diffusion q(x_t | x_{t-1}) and others
-        self.register_buffer(
-            "sqrt_alphas_cumprod", to_torch(np.sqrt(alphas_cumprod.cpu()))
-        )
+        self.register_buffer("sqrt_alphas_cumprod", to_torch(np.sqrt(alphas_cumprod.cpu())))
         self.register_buffer(
             "sqrt_one_minus_alphas_cumprod",
             to_torch(np.sqrt(1.0 - alphas_cumprod.cpu())),
@@ -125,9 +117,7 @@ class PLMSSampler(object):
             if isinstance(conditioning, dict):
                 cbs = conditioning[list(conditioning.keys())[0]].shape[0]
                 if cbs != batch_size:
-                    print(
-                        f"Warning: Got {cbs} conditionings but batch-size is {batch_size}"
-                    )
+                    print(f"Warning: Got {cbs} conditionings but batch-size is {batch_size}")
             else:
                 if conditioning.shape[0] != batch_size:
                     print(
@@ -190,20 +180,14 @@ class PLMSSampler(object):
             img = x_T
 
         if timesteps is None:
-            timesteps = (
-                self.ddpm_num_timesteps
-                if ddim_use_original_steps
-                else self.ddim_timesteps
-            )
+            timesteps = self.ddpm_num_timesteps if ddim_use_original_steps else self.ddim_timesteps
         elif timesteps is not None and not ddim_use_original_steps:
             # subset_end = int(min(timesteps / self.ddim_timesteps.shape[0], 1) * self.ddim_timesteps.shape[0]) - 1
             # timesteps = self.ddim_timesteps[:subset_end]
             pass
         intermediates = {"x_inter": [img], "pred_x0": [img]}
         time_range = (
-            list(reversed(range(0, timesteps)))
-            if ddim_use_original_steps
-            else np.flip(timesteps)
+            list(reversed(range(0, timesteps))) if ddim_use_original_steps else np.flip(timesteps)
         )
         total_steps = timesteps if ddim_use_original_steps else timesteps.shape[0]
         print(f"Running PLMS Sampling with {total_steps} timesteps")
@@ -224,9 +208,7 @@ class PLMSSampler(object):
 
             if mask is not None:
                 assert x0 is not None
-                img_orig = self.model.q_sample(
-                    x0, ts
-                )  # TODO: deterministic forward pass?
+                img_orig = self.model.q_sample(x0, ts)  # TODO: deterministic forward pass?
                 img = img_orig * mask + (1.0 - mask) * img
 
             outs = self.p_sample_plms(
@@ -282,10 +264,7 @@ class PLMSSampler(object):
         b, *_, device = *x.shape, x.device
 
         def get_model_output(x, t):
-            if (
-                unconditional_conditioning is None
-                or unconditional_guidance_scale == 1.0
-            ):
+            if unconditional_conditioning is None or unconditional_guidance_scale == 1.0:
                 if isinstance(self.model.model, torch.nn.DataParallel):
                     devices = torch.cuda.device_count()
                     t_parallel = t.repeat(devices)
@@ -311,9 +290,7 @@ class PLMSSampler(object):
 
         alphas = self.model.alphas_cumprod if use_original_steps else self.ddim_alphas
         alphas_prev = (
-            self.model.alphas_cumprod_prev
-            if use_original_steps
-            else self.ddim_alphas_prev
+            self.model.alphas_cumprod_prev if use_original_steps else self.ddim_alphas_prev
         )
         sqrt_one_minus_alphas = (
             self.model.sqrt_one_minus_alphas_cumprod
@@ -361,9 +338,7 @@ class PLMSSampler(object):
             e_t_prime = (23 * e_t - 16 * old_eps[-1] + 5 * old_eps[-2]) / 12
         elif len(old_eps) >= 3:
             # 4nd order Pseudo Linear Multistep (Adams-Bashforth)
-            e_t_prime = (
-                55 * e_t - 59 * old_eps[-1] + 37 * old_eps[-2] - 9 * old_eps[-3]
-            ) / 24
+            e_t_prime = (55 * e_t - 59 * old_eps[-1] + 37 * old_eps[-2] - 9 * old_eps[-3]) / 24
 
         x_prev, pred_x0 = get_x_prev_and_pred_x0(e_t_prime, index)
 
