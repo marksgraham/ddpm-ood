@@ -186,10 +186,6 @@ def main(args):
     print(f"Let's use {torch.cuda.device_count()} GPUs!")
     vqvae = vqvae.to(device)
     diffusion = diffusion.to(device)
-    if ddp:
-        if args.config_vqvae_file != "None":
-            vqvae = DistributedDataParallel(vqvae, device_ids=[device])
-        diffusion = DistributedDataParallel(diffusion, device_ids=[device])
 
     vqvae = vqvae.to(device)
     diffusion = diffusion.to(device)
@@ -214,6 +210,11 @@ def main(args):
             diffusion.load_state_dict(checkpoint)
     else:
         raise FileExistsError(f"No checkpoint {checkpoint_path}")
+
+    if ddp:
+        if args.config_vqvae_file != "None":
+            vqvae = DistributedDataParallel(vqvae, device_ids=[device])
+        diffusion = DistributedDataParallel(diffusion, device_ids=[device])
 
     raw_vqvae = vqvae.module if hasattr(vqvae, "module") else vqvae
     raw_diffusion = diffusion.module if hasattr(diffusion, "module") else diffusion
