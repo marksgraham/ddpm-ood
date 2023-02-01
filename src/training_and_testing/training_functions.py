@@ -75,7 +75,7 @@ def train_ldm(
             print(f"epoch {epoch + 1} val loss: {val_loss:.4f}")
 
             # Save checkpoint
-            if ddp and dist.get_rank() == 0:
+            if ddp and dist.get_rank() == 0 or not ddp:
                 checkpoint = {
                     "epoch": epoch + 1,
                     "diffusion": raw_model.state_dict(),
@@ -97,31 +97,6 @@ def train_ldm(
                         raw_model.state_dict(),
                         str(run_dir / "best_model_nll.pth"),
                     )
-            else:
-                checkpoint = {
-                    "epoch": epoch + 1,
-                    "diffusion": raw_model.state_dict(),
-                    "optimizer": optimizer.state_dict(),
-                    "best_loss": best_loss,
-                    "best_nll": best_nll,
-                    "t_sampler_history": raw_model.t_sampler._loss_history,
-                    "t_sampler_loss_counts": raw_model.t_sampler._loss_counts,
-                }
-            torch.save(checkpoint, str(run_dir / "checkpoint.pth"))
-            if (epoch + 1) % checkpoint_every == 0:
-                torch.save(checkpoint, str(run_dir / f"checkpoint_{epoch+1}.pth"))
-
-            if val_loss <= best_loss:
-                print(f"New best val loss {val_loss}")
-                best_loss = val_loss
-                torch.save(raw_model.state_dict(), str(run_dir / "best_model_val_loss.pth"))
-            if nll_per_dim <= best_nll:
-                print(f"New best nll per dim {nll_per_dim}")
-                best_nll = nll_per_dim
-                torch.save(
-                    raw_model.state_dict(),
-                    str(run_dir / "best_model_nll.pth"),
-                )
 
     print("Training finished!")
     print("Saving final model...")
