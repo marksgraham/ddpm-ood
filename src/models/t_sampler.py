@@ -4,7 +4,6 @@ import numpy as np
 import torch as th
 import torch.distributed as dist
 
-
 # def create_named_schedule_sampler(name, diffusion):
 #     """
 #     Create a ScheduleSampler from a library of pre-defined samplers.
@@ -103,9 +102,7 @@ class LossAwareSampler(ScheduleSampler):
         loss_batches = [th.zeros(max_bs).to(local_losses) for bs in batch_sizes]
         dist.all_gather(timestep_batches, local_ts)
         dist.all_gather(loss_batches, local_losses)
-        timesteps = [
-            x.item() for y, bs in zip(timestep_batches, batch_sizes) for x in y[:bs]
-        ]
+        timesteps = [x.item() for y, bs in zip(timestep_batches, batch_sizes) for x in y[:bs]]
         losses = [x.item() for y, bs in zip(loss_batches, batch_sizes) for x in y[:bs]]
         self.update_with_all_losses(timesteps, losses)
 
@@ -132,9 +129,7 @@ class LossSecondMomentResampler(LossAwareSampler):
         self.num_timesteps = num_timesteps
         self.history_per_term = history_per_term
         self.uniform_prob = uniform_prob
-        self._loss_history = np.zeros(
-            [num_timesteps, history_per_term], dtype=np.float64
-        )
+        self._loss_history = np.zeros([num_timesteps, history_per_term], dtype=np.float64)
         self._loss_counts = np.zeros([num_timesteps], dtype=np.int)
 
     def weights(self):

@@ -1,9 +1,8 @@
+from typing import Dict, List, Sequence, Tuple, Union
+
 import torch
-import torch.nn as nn
 import torch.distributed.distributed_c10d as dist
-
-from typing import Dict, List, Sequence, Union, Tuple
-
+import torch.nn as nn
 from torch.nn import functional as F
 
 from .vqvae_base import VQVAEBase
@@ -36,9 +35,7 @@ class Quantizer_impl(nn.Module):
         self.register_buffer("embed_avg", self.weight.data.clone())
 
     @torch.cuda.amp.autocast(enabled=False)
-    def forward(
-        self, x: torch.Tensor, decay: float, commitment_cost: float
-    ) -> List[torch.Tensor]:
+    def forward(self, x: torch.Tensor, decay: float, commitment_cost: float) -> List[torch.Tensor]:
         b, c, h, w = x.shape
         x = x.float()
 
@@ -102,9 +99,7 @@ class Quantizer(nn.Module):
         self.perplexity_code: torch.Tensor = torch.rand(1)
 
     def forward(self, x):
-        quantized_st, latent_loss, embed_idx = self.impl(
-            x, self.decay, self.commitment_cost
-        )
+        quantized_st, latent_loss, embed_idx = self.impl(x, self.decay, self.commitment_cost)
 
         avg_probs = (
             lambda e: torch.histc(e.float(), bins=self.n_embed, max=self.n_embed)
@@ -222,9 +217,7 @@ class BaselineVQVAE2D(VQVAEBase, nn.Module):
                 )
             )
 
-        modules.append(
-            nn.Conv2d(self.n_channels, self.embed_dim, 3, stride=1, padding=1)
-        )
+        modules.append(nn.Conv2d(self.n_channels, self.embed_dim, 3, stride=1, padding=1))
 
         return nn.ModuleList([nn.Sequential(*modules)])
 
@@ -256,11 +249,7 @@ class BaselineVQVAE2D(VQVAEBase, nn.Module):
             modules.append(
                 nn.ConvTranspose2d(
                     self.n_channels // (1 if i == 0 else 2),
-                    (
-                        self.n_input_channels
-                        if i == self.n_levels - 1
-                        else self.n_channels // 2
-                    ),
+                    (self.n_input_channels if i == self.n_levels - 1 else self.n_channels // 2),
                     4,
                     stride=2,
                     padding=1,
@@ -287,9 +276,7 @@ class BaselineVQVAE2D(VQVAEBase, nn.Module):
         self, commitment_factor: Union[Sequence[float], float]
     ) -> Sequence[float]:
         self.quantizer[0].set_commitment_cost(
-            commitment_factor[0]
-            if isinstance(commitment_factor, list)
-            else commitment_factor
+            commitment_factor[0] if isinstance(commitment_factor, list) else commitment_factor
         )
 
         return self.get_commitment_cost()
@@ -342,9 +329,7 @@ class BaselineVQVAE2D(VQVAEBase, nn.Module):
             reconstruction = self.decode(quantizations)
             return reconstruction
         elif self.encoding_type == "indices":
-            indices_unnormed = torch.round(
-                ((encodings + 1) * 0.5) * (self.n_embed - 1)
-            ).int()
+            indices_unnormed = torch.round(((encodings + 1) * 0.5) * (self.n_embed - 1)).int()
             indices_unnormed.clamp_(0, self.n_embed - 1)
             return self.decode_samples([indices_unnormed])
         elif self.encoding_type == "quantised":
@@ -356,14 +341,10 @@ class BaselineVQVAE2D(VQVAEBase, nn.Module):
             return upsampled
 
     def pad_ldm_inputs(self, encodings: torch.Tensor) -> torch.Tensor:
-        return torch.nn.functional.pad(
-            encodings, (0, self.padding[0], 0, self.padding[1])
-        )
+        return torch.nn.functional.pad(encodings, (0, self.padding[0], 0, self.padding[1]))
 
     def crop_ldm_inputs(self, encodings: torch.Tensor) -> torch.Tensor:
-        padding = [
-            -p if p != 0 else encodings.shape[i + 2] for i, p in enumerate(self.padding)
-        ]
+        padding = [-p if p != 0 else encodings.shape[i + 2] for i, p in enumerate(self.padding)]
         return encodings[:, :, : padding[0], : padding[1]]
 
     def decode_samples(self, embedding_indices: List[torch.Tensor]) -> torch.Tensor:
@@ -372,9 +353,7 @@ class BaselineVQVAE2D(VQVAEBase, nn.Module):
 
         return samples_images
 
-    def forward(
-        self, images: torch.Tensor, get_ldm_inputs=False
-    ) -> Dict[str, List[torch.Tensor]]:
+    def forward(self, images: torch.Tensor, get_ldm_inputs=False) -> Dict[str, List[torch.Tensor]]:
         # if statement allows the use of forward() in DataParallel mode to get ldm inputs
         if get_ldm_inputs:
             return self.get_ldm_inputs(images)

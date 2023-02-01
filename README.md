@@ -6,7 +6,7 @@
 
 This repo provides code for the paper 'Denoising Diffusion Models for Out-of-Distribution Detection'.
 
-It is based on the excellent [Latent Diffusion repository](https://github.com/CompVis/latent-diffusion) 
+It is based on the excellent [Latent Diffusion repository](https://github.com/CompVis/latent-diffusion)
 (although the models in this work are vanilla diffusion models) - many thanks!
 ## Running the code
 
@@ -33,14 +33,14 @@ output_root=/root/for/saved/models
 python get_datasets.py --data_root=${data_root}
 ```
 N.B. If the error "The daily quota of the file img_align_celeba.zip is exceeded and it can't be downloaded" is thrown,
-you need to download these files manually from the GDrive and place them in `${data_root}/CelebA/raw/`, 
+you need to download these files manually from the GDrive and place them in `${data_root}/CelebA/raw/`,
 [see here](https://github.com/pytorch/vision/issues/1920#issuecomment-852237902). You can then run
 
 ```bash
 python get_datasets.py --data_root=${data_root} --download_celeba=False
 ```
 ### Train models
-Examples here use FashionMNIST as the in-distribution dataset. Commands for other datasets are given 
+Examples here use FashionMNIST as the in-distribution dataset. Commands for other datasets are given
 in [README_additional.md](README_additional.md).
 
 ```bash
@@ -75,7 +75,7 @@ python reconstruct.py \
 --run_in=1 \
 --run_out=1
 ```
-The arg `inference_skip_factor` controls the amount of t starting points that are skipped during reconstruction. 
+The arg `inference_skip_factor` controls the amount of t starting points that are skipped during reconstruction.
 This table shows the relationship between values of `inference_skip_factor` and the number of reconstructions, as needed
 to reproduce results in Supplementary Table 4 (for max_t=1000).
 
@@ -83,7 +83,7 @@ to reproduce results in Supplementary Table 4 (for max_t=1000).
 |------------------------|-----|-----|-----|-----|-----|-----|-----|-----|-----|
 | **num_reconstructions:**   | 100 | 50  | 34  | 25  | 20  | 13  | 7   | 4   | 2   |
 
-N.B. For a quicker run, you can choose to only reconstruct a subset of the validation set with e.g. `--first_n_val=1000` 
+N.B. For a quicker run, you can choose to only reconstruct a subset of the validation set with e.g. `--first_n_val=1000`
 or a subset of the in/out datasets with `--first_n=1000`
 
 
@@ -95,4 +95,4 @@ python ood_detection.py \
 ```
 
 
-# 
+#

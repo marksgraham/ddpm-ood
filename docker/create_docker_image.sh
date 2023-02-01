@@ -11,5 +11,3 @@ docker build --tag "${USER}:${TAG}" . \
   --build-arg USER_ID=$(id -u) \
   --build-arg GROUP_ID=$(id -g) \
   --build-arg USER=${USER}
-
-

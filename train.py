@@ -1,24 +1,24 @@
 import argparse
 import os
+import sys
 import warnings
 from pathlib import Path
 
 import torch
 import torch.distributed as dist
 import torch.optim as optim
-from torch.nn.parallel import DistributedDataParallel
-
 from monai.config import print_config
 from monai.utils import set_determinism
-from tensorboardX import SummaryWriter
 from omegaconf import OmegaConf
+from tensorboardX import SummaryWriter
+from torch.nn.parallel import DistributedDataParallel
 
+from src.models.ddpm_2d import DDPM
 from src.models.vqvae_2d import BaselineVQVAE2D
 from src.models.vqvae_dummy import DummyVQVAE
-from src.models.ddpm_2d import DDPM
 from src.training_and_testing.training_functions import train_ldm
 from src.training_and_testing.util import get_training_data_loader
-import sys
+
 warnings.filterwarnings("ignore")
 
 
@@ -29,9 +29,7 @@ def parse_args():
     parser.add_argument("--output_dir", help="Location for models.")
     parser.add_argument("--model_name", help="Name of model.")
     parser.add_argument("--training_ids", help="Location of file with training ids.")
-    parser.add_argument(
-        "--validation_ids", help="Location of file with validation ids."
-    )
+    parser.add_argument("--validation_ids", help="Location of file with validation ids.")
     parser.add_argument("--out_ids", help="List of location of file with outlier ids.")
     parser.add_argument(
         "--config_vqvae_file",
@@ -41,12 +39,8 @@ def parse_args():
     parser.add_argument("--config_diffusion_file", help="Location of config.")
     parser.add_argument("--vqvae_checkpoint", help="VQVAE checkpoint path.")
     # training param
-    parser.add_argument(
-        "--batch_size", type=int, default=180, help="Training batch size."
-    )
-    parser.add_argument(
-        "--n_epochs", type=int, default=300, help="Number of epochs to train."
-    )
+    parser.add_argument("--batch_size", type=int, default=180, help="Training batch size.")
+    parser.add_argument("--n_epochs", type=int, default=300, help="Number of epochs to train.")
     parser.add_argument(
         "--eval_freq",
         type=int,
@@ -59,9 +53,7 @@ def parse_args():
         default=1,
         help="Use of augmentation, 1 (True) or 0 (False).",
     )
-    parser.add_argument(
-        "--num_workers", type=int, default=8, help="Number of loader workers"
-    )
+    parser.add_argument("--num_workers", type=int, default=8, help="Number of loader workers")
     parser.add_argument(
         "--cache_data",
         type=int,
@@ -74,9 +66,7 @@ def parse_args():
         default=100,
         help="Save a checkpoint every checkpoint_every epochs.",
     )
-    parser.add_argument(
-        "--is_grayscale", type=int, default=0, help="Is data grayscale."
-    )
+    parser.add_argument("--is_grayscale", type=int, default=0, help="Is data grayscale.")
 
     args = parser.parse_args()
     return args
@@ -163,7 +153,7 @@ def main(args):
     best_nll = float("inf")
     start_epoch = 0
     if resume:
-        print(f"Using checkpoint!")
+        print("Using checkpoint!")
         checkpoint = torch.load(str(run_dir / "checkpoint.pth"))
         diffusion.load_state_dict(checkpoint["diffusion"])
         optimizer.load_state_dict(checkpoint["optimizer"])
@@ -175,10 +165,10 @@ def main(args):
             raw_diffusion.t_sampler._loss_counts = checkpoint["t_sampler_loss_counts"]
 
     else:
-        print(f"No checkpoint found.")
+        print("No checkpoint found.")
 
     # Train model
-    print(f"Starting Training")
+    print("Starting Training")
     val_loss = train_ldm(
         model=diffusion,
         vqvae=vqvae,
@@ -195,8 +185,9 @@ def main(args):
         run_dir=run_dir,
         checkpoint_every=args.checkpoint_every,
         best_nll=best_nll,
-        ddp=ddp
+        ddp=ddp,
     )
+
 
 # to run using DDP, run torchrun --nproc_per_node=1 --nnodes=1 --node_rank=0  train_seg_ddpm.py --args
 if __name__ == "__main__":

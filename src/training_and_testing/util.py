@@ -1,15 +1,12 @@
-from pathlib import PosixPath
-
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import torch
+import torch.distributed as dist
 from monai import transforms
 from monai.data import CacheDataset, Dataset, partition_dataset
-from omegaconf import OmegaConf
 from tensorboardX import SummaryWriter
 from torch.utils.data import DataLoader
-import torch.distributed as dist
 
 
 def recursive_items(dictionary):
@@ -68,9 +65,7 @@ def get_training_data_loader(
     val_transforms = transforms.Compose(
         [
             transforms.LoadImaged(keys=["image"]),
-            transforms.EnsureChannelFirstd(keys=["image"])
-            if is_grayscale
-            else lambda x: x,
+            transforms.EnsureChannelFirstd(keys=["image"]) if is_grayscale else lambda x: x,
             transforms.ScaleIntensityd(keys=["image"], minv=0.0, maxv=1.0),
             transforms.RandFlipD(keys=["image"], spatial_axis=0, prob=1.0)
             if add_vflip
@@ -87,9 +82,7 @@ def get_training_data_loader(
             [
                 transforms.LoadImaged(keys=["image"]),
                 transforms.ScaleIntensityd(keys=["image"], minv=0.0, maxv=1.0),
-                transforms.EnsureChannelFirstd(keys=["image"])
-                if is_grayscale
-                else lambda x: x,
+                transforms.EnsureChannelFirstd(keys=["image"]) if is_grayscale else lambda x: x,
                 transforms.ToTensord(keys=["image"]),
             ]
         )
@@ -177,8 +170,7 @@ def normal_kl(mean1, logvar1, mean2, logvar2):
     # Force variances to be Tensors. Broadcasting helps convert scalars to
     # Tensors, but it does not work for th.exp().
     logvar1, logvar2 = [
-        x if isinstance(x, torch.Tensor) else torch.tensor(x).to(tensor)
-        for x in (logvar1, logvar2)
+        x if isinstance(x, torch.Tensor) else torch.tensor(x).to(tensor) for x in (logvar1, logvar2)
     ]
 
     return 0.5 * (
@@ -191,15 +183,9 @@ def normal_kl(mean1, logvar1, mean2, logvar2):
 
 
 def get_kl(model, x_start, x_t, t):
-    true_mean, _, true_log_variance_clipped = model.q_posterior(
-        x_start=x_start, x_t=x_t, t=t
-    )
-    model_mean, _, posterior_log_variance = model.p_mean_variance(
-        x_t, t, clip_denoised=False
-    )
-    kl = normal_kl(
-        true_mean, true_log_variance_clipped, model_mean, posterior_log_variance
-    )
+    true_mean, _, true_log_variance_clipped = model.q_posterior(x_start=x_start, x_t=x_t, t=t)
+    model_mean, _, posterior_log_variance = model.p_mean_variance(x_t, t, clip_denoised=False)
+    kl = normal_kl(true_mean, true_log_variance_clipped, model_mean, posterior_log_variance)
     return kl
 
 
@@ -307,7 +293,7 @@ def log_reconstructions(
         img,
         recons,
     )
-    writer.add_figure(f"RECONSTRUCTION", fig, step)
+    writer.add_figure("RECONSTRUCTION", fig, step)
 
 
 def log_reconstructions_3d(
@@ -334,9 +320,7 @@ def log_ldm_sample(
     sample_shape = [
         8,
     ] + spatial_shape
-    latent_vectors = diffusion_model.p_sample_loop(
-        sample_shape, return_intermediates=False
-    )
+    latent_vectors = diffusion_model.p_sample_loop(sample_shape, return_intermediates=False)
 
     with torch.no_grad():
         x_hat = stage1_model.reconstruct_ldm_outputs(latent_vectors)
@@ -359,9 +343,7 @@ def log_3d_ldm_sample(
     sample_shape = [
         8,
     ] + spatial_shape
-    latent_vectors_padded = diffusion_model.p_sample_loop(
-        sample_shape, return_intermediates=False
-    )
+    latent_vectors_padded = diffusion_model.p_sample_loop(sample_shape, return_intermediates=False)
     latent_vectors = stage1_model.crop_ldm_inputs(latent_vectors_padded)
     with torch.no_grad():
         x_hat = stage1_model.reconstruct_ldm_outputs(latent_vectors)

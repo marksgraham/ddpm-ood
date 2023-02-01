@@ -2,21 +2,14 @@ import os
 from collections import OrderedDict
 from pathlib import PosixPath
 
+import numpy as np
 import torch
-import torch.nn.functional as F
 import torch.distributed as dist
-
 from tensorboardX import SummaryWriter
-from torch.cuda.amp import autocast, GradScaler
+from torch.cuda.amp import GradScaler, autocast
 from tqdm import tqdm
 
-from ..training_and_testing.util import (
-    log_reconstructions,
-    log_ldm_sample,
-    log_3d_ldm_sample,
-    get_kl,
-)
-import numpy as np
+from ..training_and_testing.util import get_kl, log_3d_ldm_sample
 
 
 def get_lr(optimizer):
@@ -40,7 +33,7 @@ def train_ldm(
     run_dir: PosixPath,
     checkpoint_every: int,
     best_nll: float,
-    ddp: bool = False
+    ddp: bool = False,
 ):
     scaler = GradScaler()
     raw_model = model.module if hasattr(model, "module") else model
@@ -122,8 +115,8 @@ def train_ldm(
                     str(run_dir / f"best_model_nll_{best_nll:.3f}.pth"),
                 )
 
-    print(f"Training finished!")
-    print(f"Saving final model...")
+    print("Training finished!")
+    print("Saving final model...")
     torch.save(raw_model.state_dict(), str(run_dir / "final_model.pth"))
     if ddp:
         dist.destroy_process_group()
@@ -158,9 +151,7 @@ def train_epoch_ldm(
             loss, loss_dict = model(e_padded, crop_function=raw_vqvae.crop_ldm_inputs)
             loss = loss.mean()
             # update sampler
-            raw_model.t_sampler.update_with_all_losses(
-                loss_dict["t"], loss_dict["vlb_per_t"]
-            )
+            raw_model.t_sampler.update_with_all_losses(loss_dict["t"], loss_dict["vlb_per_t"])
             if quick_test:
                 break
         losses = OrderedDict(loss=loss)
@@ -187,9 +178,7 @@ def train_epoch_ldm(
 
 
 @torch.no_grad()
-def eval_ldm(
-    model, vqvae, loader, device, step: int, writer: SummaryWriter, quick_test=False
-):
+def eval_ldm(model, vqvae, loader, device, step: int, writer: SummaryWriter, quick_test=False):
     print("Validating")
     model.eval()
     raw_vqvae = vqvae.module if hasattr(vqvae, "module") else vqvae
@@ -205,9 +194,7 @@ def eval_ldm(
                 # print(img.shape)
                 e = vqvae(img.to(device), get_ldm_inputs=True)
                 e_padded = raw_vqvae.pad_ldm_inputs(e)
-                loss, loss_dict = model(
-                    e_padded, crop_function=raw_vqvae.crop_ldm_inputs
-                )
+                loss, loss_dict = model(e_padded, crop_function=raw_vqvae.crop_ldm_inputs)
 
         losses = OrderedDict(loss=loss.mean())
 
@@ -222,9 +209,7 @@ def eval_ldm(
             for t in tqdm(list(range(0, raw_model.num_timesteps))[::-1]):
                 if t == 0:
                     continue
-                t_batch = torch.full(
-                    (mini_batch.shape[0],), t, device=device, dtype=torch.long
-                )
+                t_batch = torch.full((mini_batch.shape[0],), t, device=device, dtype=torch.long)
                 noise = torch.randn_like(mini_batch)
                 # x_t = raw_diffusion.q_sample(x_start=x_start, t=t_batch, noise=noise)
                 x_t = model(mini_batch, t=t_batch, noise=noise, do_qsample="true")

@@ -21,16 +21,12 @@ def timestep_embedding(timesteps, dim, max_period=10000, repeat_only=False):
     if not repeat_only:
         half = dim // 2
         freqs = torch.exp(
-            -math.log(max_period)
-            * torch.arange(start=0, end=half, dtype=torch.float32)
-            / half
+            -math.log(max_period) * torch.arange(start=0, end=half, dtype=torch.float32) / half
         ).to(device=timesteps.device)
         args = timesteps[:, None].float() * freqs[None]
         embedding = torch.cat([torch.cos(args), torch.sin(args)], dim=-1)
         if dim % 2:
-            embedding = torch.cat(
-                [embedding, torch.zeros_like(embedding[:, :1])], dim=-1
-            )
+            embedding = torch.cat([embedding, torch.zeros_like(embedding[:, :1])], dim=-1)
     else:
         embedding = repeat(timesteps, "b -> b d", d=dim)
     return embedding
@@ -182,9 +178,7 @@ class Downsample(nn.Module):
         self.out_channels = out_channels or channels
         self.use_conv = use_conv
         if use_conv:
-            self.op = nn.Conv2d(
-                self.channels, self.out_channels, 3, stride=2, padding=padding
-            )
+            self.op = nn.Conv2d(self.channels, self.out_channels, 3, stride=2, padding=padding)
         else:
             assert self.channels == self.out_channels
             self.op = nn.AvgPool2d(kernel_size=2, stride=2)
@@ -365,11 +359,7 @@ class UNetModel(nn.Module):
             self.label_emb = nn.Embedding(num_classes, time_embed_dim)
 
         self.input_blocks = nn.ModuleList(
-            [
-                TimestepEmbedSequential(
-                    nn.Conv2d(in_channels, model_channels, 3, padding=1)
-                )
-            ]
+            [TimestepEmbedSequential(nn.Conv2d(in_channels, model_channels, 3, padding=1))]
         )
         self._feature_size = model_channels
         input_block_chans = [model_channels]
