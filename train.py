@@ -140,10 +140,6 @@ def main(args):
     print(f"Let's use {torch.cuda.device_count()} GPUs!")
     vqvae = vqvae.to(device)
     diffusion = diffusion.to(device)
-    if ddp:
-        if args.config_vqvae_file != "None":
-            vqvae = DistributedDataParallel(vqvae, device_ids=[device])
-        diffusion = DistributedDataParallel(diffusion, device_ids=[device])
 
     raw_diffusion = diffusion.module if hasattr(diffusion, "module") else diffusion
     optimizer = optim.Adam(diffusion.parameters(), lr=config_ldm["ldm"]["base_lr"])
@@ -166,6 +162,11 @@ def main(args):
 
     else:
         print("No checkpoint found.")
+
+    if ddp:
+        if args.config_vqvae_file != "None":
+            vqvae = DistributedDataParallel(vqvae, device_ids=[device])
+        diffusion = DistributedDataParallel(diffusion, device_ids=[device])
 
     # Train model
     print("Starting Training")
