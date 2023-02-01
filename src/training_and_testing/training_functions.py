@@ -1,6 +1,8 @@
 from collections import OrderedDict
 from pathlib import PosixPath
 
+import matplotlib.pyplot as plt
+import numpy as np
 import torch
 import torch.distributed as dist
 import torch.nn.functional as F
@@ -36,7 +38,7 @@ def train_ldm(
 ):
     scaler = GradScaler()
     raw_model = model.module if hasattr(model, "module") else model
-    quick_test = False
+    quick_test = True
     if quick_test:
         print("WARNING: just running on one batch of train and val sets.")
 
@@ -161,9 +163,7 @@ def eval_ldm(
 ):
     print("Validating")
     model.eval()
-    raw_vqvae = vqvae.module if hasattr(vqvae, "module") else vqvae
-    raw_model = model.module if hasattr(model, "module") else model
-    total_losses = OrderedDict()
+    total_losses = 0
 
     pbar = tqdm(enumerate(loader), total=len(loader))
     for val_step, x in pbar:
@@ -190,4 +190,15 @@ def eval_ldm(
 
     writer.add_scalar("loss", step)
 
+    # save some samples
+    noise = torch.randn((8, img.shape[1], img.shape[2], img.shape[3])).to(device)
+    sample = inferer.sample(input_noise=noise, diffusion_model=model, scheduler=scheduler)
+    fig, ax = plt.subplots(2, 4)
+    for i in range(8):
+        plt.subplot(2, 4, i + 1)
+        plt.imshow(np.transpose(sample[i, ...].cpu().numpy(), (1, 2, 0)))
+        plt.axis("off")
+    plt.show()
+
+    writer.add_figure(tag="samples", figure=fig, global_step=step)
     return total_losses["loss"]
