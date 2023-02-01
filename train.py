@@ -32,7 +32,6 @@ def parse_args():
     parser.add_argument("--model_name", help="Name of model.")
     parser.add_argument("--training_ids", help="Location of file with training ids.")
     parser.add_argument("--validation_ids", help="Location of file with validation ids.")
-    parser.add_argument("--out_ids", help="List of location of file with outlier ids.")
     parser.add_argument(
         "--config_vqvae_file",
         default="None",
