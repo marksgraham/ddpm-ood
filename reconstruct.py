@@ -195,18 +195,6 @@ def main(args):
         checkpoint = torch.load(checkpoint_path)
         if "diffusion" in checkpoint.keys():
             checkpoint = checkpoint["diffusion"]
-        if torch.cuda.device_count() > 1:
-            from collections import OrderedDict
-
-            new_state_dict = OrderedDict()
-            for k, v in checkpoint.items():
-                if "module" not in k:
-                    k = "module." + k
-                else:
-                    k = k.replace("features.module.", "module.features.")
-                new_state_dict[k] = v
-            diffusion.load_state_dict(new_state_dict)
-        else:
             diffusion.load_state_dict(checkpoint)
     else:
         raise FileExistsError(f"No checkpoint {checkpoint_path}")
