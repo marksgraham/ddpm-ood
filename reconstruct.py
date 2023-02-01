@@ -246,7 +246,7 @@ def main(args):
                 t1 = time()
                 image = batch["image"].cuda()
                 latent = vqvae(image, get_ldm_inputs=True)
-                latent_padded = raw_vqvae.pad_ldm_inputs(latent)
+                latent_padded = vqvae.pad_ldm_inputs(latent)
                 batch_size = latent_padded.shape[0]
                 n += batch["image"].shape[0]
                 for idx, t in enumerate(t_vals):
@@ -254,7 +254,7 @@ def main(args):
                         (batch_size,), t_vals[idx], device=device, dtype=torch.long
                     )
                     noise = torch.randn_like(latent_padded)
-                    x_t_upper = raw_diffusion(
+                    x_t_upper = diffusion(
                         latent_padded, t=t_batch_upper, noise=noise, do_qsample="true"
                     )
                     latent_denoised = x_t_upper
