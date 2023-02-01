@@ -111,7 +111,7 @@ def train_ldm(
                     os.remove(old_checkpoint)
                 best_nll = nll_per_dim
                 torch.save(
-                    raw_model.state_dict(),
+                    model.module.state_dict(),
                     str(run_dir / f"best_model_nll_{best_nll:.3f}.pth"),
                 )
 
