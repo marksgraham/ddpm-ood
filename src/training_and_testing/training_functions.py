@@ -103,7 +103,7 @@ def train_ldm(
             if val_loss <= best_loss:
                 print(f"New best val loss {val_loss}")
                 best_loss = val_loss
-                torch.save(raw_model.state_dict(), str(run_dir / "best_model.pth"))
+                torch.save(model.module.state_dict(), str(run_dir / "best_model.pth"))
             if nll_per_dim <= best_nll:
                 print(f"New best nll per dim {nll_per_dim}")
                 old_checkpoint = run_dir / f"best_model_nll_{best_nll:.3f}.pth"
