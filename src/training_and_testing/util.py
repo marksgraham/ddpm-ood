@@ -5,10 +5,11 @@ import numpy as np
 import pandas as pd
 import torch
 from monai import transforms
-from monai.data import CacheDataset, Dataset
+from monai.data import CacheDataset, Dataset, partition_dataset
 from omegaconf import OmegaConf
 from tensorboardX import SummaryWriter
 from torch.utils.data import DataLoader
+import torch.distributed as dist
 
 
 def recursive_items(dictionary):
@@ -33,7 +34,19 @@ def get_data_dicts(
         data_dicts.append({"image": (row)})
 
     print(f"Found {len(data_dicts)} subjects.")
-    return data_dicts
+    if dist.is_initialized():
+        print(dist.get_rank())
+        print(dist.get_world_size())
+        return partition_dataset(
+            data=data_dicts,
+            num_partitions=dist.get_world_size(),
+            shuffle=True,
+            seed=0,
+            drop_last=False,
+            even_divisible=True,
+        )[dist.get_rank()]
+    else:
+        return data_dicts
 
 
 def get_training_data_loader(

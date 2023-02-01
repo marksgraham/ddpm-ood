@@ -45,7 +45,7 @@ def main(args):
     run_dir = Path(args.output_dir) / model
     print(f"Run directory: {str(run_dir)}")
 
-    out_dir = run_dir / "ood"
+    out_dir = run_dir / "ood_reconstructv6_fullrun"
     out_dir.mkdir(exist_ok=True)
     results_df_val = pd.read_csv(out_dir / "results_val.csv")
     all_t_values = results_df_val["t"].unique()

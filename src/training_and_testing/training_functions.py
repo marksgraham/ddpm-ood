@@ -4,6 +4,8 @@ from pathlib import PosixPath
 
 import torch
 import torch.nn.functional as F
+import torch.distributed as dist
+
 from tensorboardX import SummaryWriter
 from torch.cuda.amp import autocast, GradScaler
 from tqdm import tqdm
@@ -38,6 +40,7 @@ def train_ldm(
     run_dir: PosixPath,
     checkpoint_every: int,
     best_nll: float,
+    ddp: bool = False
 ):
     scaler = GradScaler()
     raw_model = model.module if hasattr(model, "module") else model
@@ -80,15 +83,26 @@ def train_ldm(
             print(f"epoch {epoch + 1} val loss: {val_loss:.4f}")
 
             # Save checkpoint
-            checkpoint = {
-                "epoch": epoch + 1,
-                "diffusion": model.state_dict(),
-                "optimizer": optimizer.state_dict(),
-                "best_loss": best_loss,
-                "best_nll": best_nll,
-                "t_sampler_history": raw_model.t_sampler._loss_history,
-                "t_sampler_loss_counts": raw_model.t_sampler._loss_counts,
-            }
+            if ddp:
+                checkpoint = {
+                    "epoch": epoch + 1,
+                    "diffusion": model.module.state_dict(),
+                    "optimizer": optimizer.state_dict(),
+                    "best_loss": best_loss,
+                    "best_nll": best_nll,
+                    "t_sampler_history": raw_model.t_sampler._loss_history,
+                    "t_sampler_loss_counts": raw_model.t_sampler._loss_counts,
+                }
+            else:
+                checkpoint = {
+                    "epoch": epoch + 1,
+                    "diffusion": model.state_dict(),
+                    "optimizer": optimizer.state_dict(),
+                    "best_loss": best_loss,
+                    "best_nll": best_nll,
+                    "t_sampler_history": raw_model.t_sampler._loss_history,
+                    "t_sampler_loss_counts": raw_model.t_sampler._loss_counts,
+                }
             torch.save(checkpoint, str(run_dir / "checkpoint.pth"))
             if (epoch + 1) % checkpoint_every == 0:
                 torch.save(checkpoint, str(run_dir / f"checkpoint_{epoch+1}.pth"))
@@ -111,7 +125,8 @@ def train_ldm(
     print(f"Training finished!")
     print(f"Saving final model...")
     torch.save(raw_model.state_dict(), str(run_dir / "final_model.pth"))
-
+    if ddp:
+        dist.destroy_process_group()
     return val_loss
 
 
