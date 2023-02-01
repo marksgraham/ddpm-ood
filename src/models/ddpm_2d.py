@@ -420,7 +420,7 @@ class DDPM(nn.Module):
         loss_simple = self.get_loss(model_output, target, mean=False).mean(dim=[1, 2, 3])
         loss_dict.update({"loss_simple": (loss_simple * weights).mean()})
 
-        logvar_t = self.logvar[t].to(x_start.device)
+        logvar_t = self.logvar[t.cpu()].to(x_start.device)
         loss = loss_simple / torch.exp(logvar_t) + logvar_t
         # loss = loss_simple / torch.exp(self.logvar) + self.logvar
         if self.learn_logvar:

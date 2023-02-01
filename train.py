@@ -73,20 +73,6 @@ def parse_args():
 
 
 def main(args):
-    set_determinism(seed=args.seed)
-    print_config()
-    run_dir = Path(args.output_dir) / args.model_name
-    if run_dir.exists() and (run_dir / "checkpoint.pth").exists():
-        resume = True
-    else:
-        resume = False
-        run_dir.mkdir(exist_ok=True, parents=True)
-
-    print(f"Run directory: {str(run_dir)}")
-    print(f"Arguments: {str(args)}")
-    for k, v in vars(args).items():
-        print(f"  {k}: {v}")
-
     # initialise DDP if run was launched with torchrun
     if "LOCAL_RANK" in os.environ:
         print("Setting up DDP.")
@@ -103,6 +89,20 @@ def main(args):
     else:
         ddp = False
         device = "cuda:0" if torch.cuda.is_available() else "cpu"
+
+    set_determinism(seed=args.seed)
+    print_config()
+    run_dir = Path(args.output_dir) / args.model_name
+    if run_dir.exists() and (run_dir / "checkpoint.pth").exists():
+        resume = True
+    else:
+        resume = False
+        run_dir.mkdir(exist_ok=True, parents=True)
+
+    print(f"Run directory: {str(run_dir)}")
+    print(f"Arguments: {str(args)}")
+    for k, v in vars(args).items():
+        print(f"  {k}: {v}")
 
     writer_train = SummaryWriter(log_dir=str(run_dir / "train"))
     writer_val = SummaryWriter(log_dir=str(run_dir / "val"))
@@ -140,10 +140,6 @@ def main(args):
     print(f"Let's use {torch.cuda.device_count()} GPUs!")
     vqvae = vqvae.to(device)
     diffusion = diffusion.to(device)
-    if ddp:
-        if args.config_vqvae_file != "None":
-            vqvae = DistributedDataParallel(vqvae, device_ids=[device])
-        diffusion = DistributedDataParallel(diffusion, device_ids=[device])
 
     raw_diffusion = diffusion.module if hasattr(diffusion, "module") else diffusion
     optimizer = optim.Adam(diffusion.parameters(), lr=config_ldm["ldm"]["base_lr"])
@@ -167,6 +163,11 @@ def main(args):
     else:
         print("No checkpoint found.")
 
+    if ddp:
+        if args.config_vqvae_file != "None":
+            vqvae = DistributedDataParallel(vqvae, device_ids=[device])
+        diffusion = DistributedDataParallel(diffusion, device_ids=[device])
+
     # Train model
     print("Starting Training")
     val_loss = train_ldm(
@@ -189,7 +190,7 @@ def main(args):
     )
 
 
-# to run using DDP, run torchrun --nproc_per_node=1 --nnodes=1 --node_rank=0  train_seg_ddpm.py --args
+# to run using DDP, run torchrun --nproc_per_node=1 --nnodes=1 --node_rank=0  train.py --args
 if __name__ == "__main__":
     args = parse_args()
     main(args)

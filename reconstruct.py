@@ -1,5 +1,6 @@
 import argparse
 import os
+import sys
 import warnings
 from pathlib import Path
 from time import time
@@ -7,11 +8,13 @@ from time import time
 import numpy as np
 import pandas as pd
 import torch
+import torch.distributed as dist
 from monai.config import print_config
 from monai.utils import set_determinism
 from omegaconf import OmegaConf
 from skimage.metrics import structural_similarity as ssim
 from torch.nn.functional import pad as torchpad
+from torch.nn.parallel import DistributedDataParallel
 from tqdm import tqdm
 
 from src.models.ddpm_2d import DDPM
@@ -91,6 +94,23 @@ def parse_args():
 
 
 def main(args):
+    # initialise DDP if run was launched with torchrun
+    if "LOCAL_RANK" in os.environ:
+        print("Setting up DDP.")
+        ddp = True
+        # disable logging for processes except 0 on every node
+        local_rank = int(os.environ["LOCAL_RANK"])
+        if local_rank != 0:
+            f = open(os.devnull, "w")
+            sys.stdout = sys.stderr = f
+
+        # initialize the distributed training process, every GPU runs in a process
+        dist.init_process_group(backend="nccl", init_method="env://")
+        device = torch.device(f"cuda:{local_rank}")
+    else:
+        ddp = False
+        device = "cuda:0" if torch.cuda.is_available() else "cpu"
+
     set_determinism(seed=args.seed)
     print_config()
     run_dir = Path(args.output_dir) / args.model_name
@@ -164,10 +184,8 @@ def main(args):
     diffusion = DDPM(**config_ldm["ldm"].get("params", dict()))
 
     print(f"Let's use {torch.cuda.device_count()} GPUs!")
-    device = torch.device("cuda")
-    if torch.cuda.device_count() > 1:
-        vqvae = torch.nn.DataParallel(vqvae)
-        diffusion = torch.nn.DataParallel(diffusion)
+    vqvae = vqvae.to(device)
+    diffusion = diffusion.to(device)
 
     vqvae = vqvae.to(device)
     diffusion = diffusion.to(device)
@@ -177,21 +195,14 @@ def main(args):
         checkpoint = torch.load(checkpoint_path)
         if "diffusion" in checkpoint.keys():
             checkpoint = checkpoint["diffusion"]
-        if torch.cuda.device_count() > 1:
-            from collections import OrderedDict
-
-            new_state_dict = OrderedDict()
-            for k, v in checkpoint.items():
-                if "module" not in k:
-                    k = "module." + k
-                else:
-                    k = k.replace("features.module.", "module.features.")
-                new_state_dict[k] = v
-            diffusion.load_state_dict(new_state_dict)
-        else:
             diffusion.load_state_dict(checkpoint)
     else:
         raise FileExistsError(f"No checkpoint {checkpoint_path}")
+
+    if ddp:
+        if args.config_vqvae_file != "None":
+            vqvae = DistributedDataParallel(vqvae, device_ids=[device])
+        diffusion = DistributedDataParallel(diffusion, device_ids=[device])
 
     raw_vqvae = vqvae.module if hasattr(vqvae, "module") else vqvae
     raw_diffusion = diffusion.module if hasattr(diffusion, "module") else diffusion
@@ -203,6 +214,8 @@ def main(args):
     diffusion_plms.make_schedule(ddim_num_steps=args.num_inference_steps)
 
     t_vals = diffusion_plms.ddim_timesteps[:: args.inference_skip_factor]
+    if ddp:
+        diffusion_plms = DistributedDataParallel(diffusion_plms)
     total_steps = 0
     for t in t_vals:
         steps_for_this_t = diffusion_plms.ddim_timesteps[diffusion_plms.ddim_timesteps <= t]
@@ -235,7 +248,7 @@ def main(args):
                 t1 = time()
                 image = batch["image"].cuda()
                 latent = vqvae(image, get_ldm_inputs=True)
-                latent_padded = raw_vqvae.pad_ldm_inputs(latent)
+                latent_padded = vqvae.pad_ldm_inputs(latent)
                 batch_size = latent_padded.shape[0]
                 n += batch["image"].shape[0]
                 for idx, t in enumerate(t_vals):
@@ -243,7 +256,7 @@ def main(args):
                         (batch_size,), t_vals[idx], device=device, dtype=torch.long
                     )
                     noise = torch.randn_like(latent_padded)
-                    x_t_upper = raw_diffusion(
+                    x_t_upper = diffusion(
                         latent_padded, t=t_batch_upper, noise=noise, do_qsample="true"
                     )
                     latent_denoised = x_t_upper
@@ -420,6 +433,8 @@ def main(args):
                 results_df = pd.DataFrame(results_list)
                 results_df.to_csv(out_dir / f"results_{dataset_name}.csv")
 
+
+# to run using DDP, run torchrun --nproc_per_node=1 --nnodes=1 --node_rank=0  reconstruct.py --args
 
 if __name__ == "__main__":
     args = parse_args()
