@@ -38,7 +38,7 @@ def train_ldm(
 ):
     scaler = GradScaler()
     raw_model = model.module if hasattr(model, "module") else model
-    quick_test = True
+    quick_test = False
     if quick_test:
         print("WARNING: just running on one batch of train and val sets.")
 
@@ -201,4 +201,4 @@ def eval_ldm(
     plt.show()
 
     writer.add_figure(tag="samples", figure=fig, global_step=step)
-    return total_losses["loss"]
+    return total_losses
