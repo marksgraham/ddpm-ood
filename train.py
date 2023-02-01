@@ -7,13 +7,15 @@ from pathlib import Path
 import torch
 import torch.distributed as dist
 import torch.optim as optim
+from generative.inferers import DiffusionInferer
+from generative.networks.nets import DiffusionModelUNet
+from generative.networks.schedulers import DDPMScheduler
 from monai.config import print_config
 from monai.utils import set_determinism
 from omegaconf import OmegaConf
 from tensorboardX import SummaryWriter
 from torch.nn.parallel import DistributedDataParallel
 
-from src.models.ddpm_2d import DDPM
 from src.models.vqvae_2d import BaselineVQVAE2D
 from src.models.vqvae_dummy import DummyVQVAE
 from src.training_and_testing.training_functions import train_ldm
@@ -134,15 +136,26 @@ def main(args):
 
     # Create model
     print("Creating model...")
-    config_ldm = OmegaConf.load(args.config_diffusion_file)
-    diffusion = DDPM(**config_ldm["ldm"].get("params", dict()))
+    diffusion = DiffusionModelUNet(
+        spatial_dims=2,
+        in_channels=1 if args.is_grayscale else 3,
+        out_channels=1 if args.is_grayscale else 3,
+        num_channels=(128, 256, 256),
+        attention_levels=(False, False, True),
+        num_res_blocks=1,
+        num_head_channels=256,
+        with_conditioning=False,
+    )
 
+    scheduler = DDPMScheduler(
+        num_train_timesteps=1000,
+    )
+    inferer = DiffusionInferer(scheduler)
     print(f"Let's use {torch.cuda.device_count()} GPUs!")
     vqvae = vqvae.to(device)
     diffusion = diffusion.to(device)
 
-    raw_diffusion = diffusion.module if hasattr(diffusion, "module") else diffusion
-    optimizer = optim.Adam(diffusion.parameters(), lr=config_ldm["ldm"]["base_lr"])
+    optimizer = optim.Adam(diffusion.parameters(), lr=0.000025)
 
     # Get Checkpoint
     best_loss = float("inf")
@@ -156,10 +169,6 @@ def main(args):
         start_epoch = checkpoint["epoch"]
         best_loss = checkpoint["best_loss"]
         best_nll = checkpoint["best_nll"]
-        if "t_sampler_history" in checkpoint.keys():
-            raw_diffusion.t_sampler._loss_history = checkpoint["t_sampler_history"]
-            raw_diffusion.t_sampler._loss_counts = checkpoint["t_sampler_loss_counts"]
-
     else:
         print("No checkpoint found.")
 
@@ -173,6 +182,8 @@ def main(args):
     val_loss = train_ldm(
         model=diffusion,
         vqvae=vqvae,
+        scheduler=scheduler,
+        inferer=inferer,
         start_epoch=start_epoch,
         best_loss=best_loss,
         train_loader=train_loader,

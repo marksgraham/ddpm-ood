@@ -1,14 +1,12 @@
 from collections import OrderedDict
 from pathlib import PosixPath
 
-import numpy as np
 import torch
 import torch.distributed as dist
+import torch.nn.functional as F
 from tensorboardX import SummaryWriter
 from torch.cuda.amp import GradScaler, autocast
 from tqdm import tqdm
-
-from ..training_and_testing.util import get_kl, log_3d_ldm_sample
 
 
 def get_lr(optimizer):
@@ -19,6 +17,8 @@ def get_lr(optimizer):
 def train_ldm(
     model,
     vqvae,
+    scheduler,
+    inferer,
     start_epoch: int,
     best_loss: float,
     train_loader,
@@ -39,20 +39,13 @@ def train_ldm(
     quick_test = False
     if quick_test:
         print("WARNING: just running on one batch of train and val sets.")
-    # val_loss = eval_3d_ldm(
-    #     model=model,
-    #     vqvae=vqvae,
-    #     loader=val_loader,
-    #     device=device,
-    #     step=len(train_loader) * start_epoch,
-    #     writer=writer_val
-    # )
-    # print(f"epoch {start_epoch} val loss: {val_loss:.4f}")
 
     for epoch in range(start_epoch, n_epochs):
         train_epoch_ldm(
             model=model,
             vqvae=vqvae,
+            scheduler=scheduler,
+            inferer=inferer,
             loader=train_loader,
             optimizer=optimizer,
             device=device,
@@ -62,9 +55,11 @@ def train_ldm(
             quick_test=quick_test,
         )
         if (epoch + 1) % eval_freq == 0:
-            val_loss, nll_per_dim = eval_ldm(
+            val_loss = eval_ldm(
                 model=model,
                 vqvae=vqvae,
+                scheduler=scheduler,
+                inferer=inferer,
                 loader=val_loader,
                 device=device,
                 step=len(train_loader) * epoch,
@@ -90,13 +85,6 @@ def train_ldm(
                     print(f"New best val loss {val_loss}")
                     best_loss = val_loss
                     torch.save(raw_model.state_dict(), str(run_dir / "best_model_val_loss.pth"))
-                if nll_per_dim <= best_nll:
-                    print(f"New best nll per dim {nll_per_dim}")
-                    best_nll = nll_per_dim
-                    torch.save(
-                        raw_model.state_dict(),
-                        str(run_dir / "best_model_nll.pth"),
-                    )
 
     print("Training finished!")
     print("Saving final model...")
@@ -109,6 +97,8 @@ def train_ldm(
 def train_epoch_ldm(
     model,
     vqvae,
+    scheduler,
+    inferer,
     loader,
     optimizer,
     device: torch.device,
@@ -118,9 +108,6 @@ def train_epoch_ldm(
     quick_test: bool,
 ):
     model.train()
-    raw_vqvae = vqvae.module if hasattr(vqvae, "module") else vqvae
-    raw_model = model.module if hasattr(model, "module") else model
-
     pbar = tqdm(enumerate(loader), total=len(loader))
     for step, x in pbar:
         img = x["image"].to(device)
@@ -128,13 +115,16 @@ def train_epoch_ldm(
         with autocast(enabled=True):
             with torch.no_grad():
                 # e = raw_vqvae.get_ldm_inputs(img.to(device))
-                e = vqvae(img.to(device), get_ldm_inputs=True)
-                e_padded = raw_vqvae.pad_ldm_inputs(e)
-
-            loss, loss_dict = model(e_padded, crop_function=raw_vqvae.crop_ldm_inputs)
-            loss = loss.mean()
-            # update sampler
-            raw_model.t_sampler.update_with_all_losses(loss_dict["t"], loss_dict["vlb_per_t"])
+                inputs = vqvae(img.to(device), get_ldm_inputs=True)
+            noise = torch.randn_like(inputs).to(device)
+            timesteps = torch.randint(
+                0,
+                inferer.scheduler.num_train_timesteps,
+                (inputs.shape[0],),
+                device=device,
+            ).long()
+            noise_prediction = model(x=inputs, timesteps=timesteps)
+            loss = F.mse_loss(noise_prediction.float(), noise.float())
             if quick_test:
                 break
         losses = OrderedDict(loss=loss)
@@ -147,9 +137,6 @@ def train_epoch_ldm(
 
         for k, v in losses.items():
             writer.add_scalar(f"{k}", v.item(), epoch * len(loader) + step)
-        for k, v in loss_dict.items():
-            if "loss" in k:
-                writer.add_scalar(k, v.mean().item(), epoch * len(loader) + step)
 
         pbar.set_postfix(
             {
@@ -161,7 +148,17 @@ def train_epoch_ldm(
 
 
 @torch.no_grad()
-def eval_ldm(model, vqvae, loader, device, step: int, writer: SummaryWriter, quick_test=False):
+def eval_ldm(
+    model,
+    vqvae,
+    scheduler,
+    inferer,
+    loader,
+    device,
+    step: int,
+    writer: SummaryWriter,
+    quick_test=False,
+):
     print("Validating")
     model.eval()
     raw_vqvae = vqvae.module if hasattr(vqvae, "module") else vqvae
@@ -175,56 +172,22 @@ def eval_ldm(model, vqvae, loader, device, step: int, writer: SummaryWriter, qui
             with torch.no_grad():
                 # e = raw_vqvae.get_ldm_inputs(img.to(device))
                 # print(img.shape)
-                e = vqvae(img.to(device), get_ldm_inputs=True)
-                e_padded = raw_vqvae.pad_ldm_inputs(e)
-                loss, loss_dict = model(e_padded, crop_function=raw_vqvae.crop_ldm_inputs)
+                inputs = vqvae(img.to(device), get_ldm_inputs=True)
+                noise = torch.randn_like(inputs).to(device)
+                timesteps = torch.randint(
+                    0,
+                    inferer.scheduler.num_train_timesteps,
+                    (inputs.shape[0],),
+                    device=device,
+                ).long()
+                noise_prediction = model(x=inputs, timesteps=timesteps)
 
-        losses = OrderedDict(loss=loss.mean())
+        loss = F.mse_loss(noise_prediction.float(), noise.float())
 
-        for k, v in losses.items():
-            total_losses[k] = total_losses.get(k, 0) + v.item() * img.shape[0]
+        total_losses = total_losses + loss * img.shape[0]
 
-        # calculate the NLL for just the first batch
-        print("Calculating val NLL on 8 samples")
-        mini_batch = e_padded[:8, ...]
-        if val_step == 0:
-            kl_temp = []
-            for t in tqdm(list(range(0, raw_model.num_timesteps))[::-1]):
-                if t == 0:
-                    continue
-                t_batch = torch.full((mini_batch.shape[0],), t, device=device, dtype=torch.long)
-                noise = torch.randn_like(mini_batch)
-                # x_t = raw_diffusion.q_sample(x_start=x_start, t=t_batch, noise=noise)
-                x_t = model(mini_batch, t=t_batch, noise=noise, do_qsample="true")
-                # Calculate VLB term at the current timestep
-                with torch.no_grad():
-                    kl = get_kl(raw_model, x_start=mini_batch, x_t=x_t, t=t_batch)
-                    kl = raw_vqvae.crop_ldm_inputs(kl)
-                non_batch_dims = tuple(range(kl.ndim))[1:]
-                kl_temp.append(kl.sum(axis=non_batch_dims).cpu())
-            nll = np.stack(kl_temp).sum(axis=0)
-            latent_dim = np.prod(kl.shape[1:])
-            nll_per_dim = nll / latent_dim
-            for i, (n, d) in enumerate(zip(nll, nll_per_dim)):
-                writer.add_scalar("NLL", n, step + i)
-                writer.add_scalar("NLL_per_dim", d, step + i)
-        if quick_test:
-            break
-    for k in total_losses.keys():
-        total_losses[k] /= len(loader.dataset)
+    total_losses /= len(loader.dataset)
 
-    for k, v in total_losses.items():
-        writer.add_scalar(f"{k}", v, step)
-    for k, v in loss_dict.items():
-        if "loss" in k:
-            writer.add_scalar(k, v.mean().item(), step)
+    writer.add_scalar("loss", step)
 
-    log_3d_ldm_sample(
-        diffusion_model=raw_model,
-        stage1_model=raw_vqvae,
-        spatial_shape=list(e_padded.shape[1:]),
-        writer=writer,
-        step=step,
-    )
-
-    return total_losses["loss"], nll_per_dim.mean()
+    return total_losses["loss"]

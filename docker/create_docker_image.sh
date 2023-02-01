@@ -6,6 +6,9 @@
 set -ex
 TAG=ddpm-ood
 
+# get monai generative
+git clone git@github.com:Project-MONAI/GenerativeModels.git
+
 cp ../requirements.txt .
 docker build --tag "${USER}:${TAG}" . \
   --build-arg USER_ID=$(id -u) \
