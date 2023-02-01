@@ -214,6 +214,8 @@ def main(args):
     diffusion_plms.make_schedule(ddim_num_steps=args.num_inference_steps)
 
     t_vals = diffusion_plms.ddim_timesteps[:: args.inference_skip_factor]
+    if ddp:
+        diffusion_plms = DistributedDataParallel(diffusion_plms)
     total_steps = 0
     for t in t_vals:
         steps_for_this_t = diffusion_plms.ddim_timesteps[diffusion_plms.ddim_timesteps <= t]
