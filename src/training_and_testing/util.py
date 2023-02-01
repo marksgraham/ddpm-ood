@@ -4,9 +4,8 @@ import pandas as pd
 import torch
 import torch.distributed as dist
 from monai import transforms
-from monai.data import CacheDataset, Dataset, partition_dataset
+from monai.data import CacheDataset, Dataset, ThreadDataLoader, partition_dataset
 from tensorboardX import SummaryWriter
-from torch.utils.data import DataLoader
 
 
 def recursive_items(dictionary):
@@ -106,7 +105,7 @@ def get_training_data_loader(
             transform=val_transforms,
         )
     print(val_ds[0]["image"].shape)
-    val_loader = DataLoader(
+    val_loader = ThreadDataLoader(
         val_ds,
         batch_size=batch_size,
         num_workers=num_val_workers,
@@ -133,7 +132,7 @@ def get_training_data_loader(
             data=train_dicts,
             transform=train_transforms,
         )
-    train_loader = DataLoader(
+    train_loader = ThreadDataLoader(
         train_ds,
         batch_size=batch_size,
         shuffle=True,
