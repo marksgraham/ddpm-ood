@@ -191,7 +191,8 @@ class BaseTrainer:
                 desc="Validation",
             )
             epoch_loss = 0
-            epoch_step = 0
+            global_val_step = self.global_step
+            val_steps = 0
             for step, batch in progress_bar:
                 images = batch["image"].to(self.device)
                 self.optimizer.zero_grad(set_to_none=True)
@@ -206,19 +207,21 @@ class BaseTrainer:
                         device=images.device,
                     ).long()
 
-                    noise_prediction = self.model(x=images, timesteps=timesteps)
+                    noise_prediction = self.inferer(
+                        inputs=images, diffusion_model=self.model, noise=noise, timesteps=timesteps
+                    )
                     loss = F.mse_loss(noise_prediction.float(), noise.float())
+                self.logger_val.add_scalar(
+                    tag="loss", scalar_value=loss.item(), global_step=global_val_step
+                )
                 epoch_loss += loss.item()
-                epoch_step += images.shape[0]
+                val_steps += images.shape[0]
+                global_val_step += images.shape[0]
                 progress_bar.set_postfix(
                     {
-                        "loss": epoch_loss / epoch_step,
+                        "loss": epoch_loss / val_steps,
                     }
                 )
-            epoch_loss = epoch_loss / epoch_step
-            self.logger_val.add_scalar(
-                tag="loss", scalar_value=epoch_loss, global_step=self.global_step
-            )
 
         # get some samples
         noise = torch.randn((8, images.shape[1], images.shape[2], images.shape[3])).to(self.device)

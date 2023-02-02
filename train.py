@@ -19,7 +19,7 @@ def parse_args():
         "--eval_freq",
         type=int,
         default=10,
-        help="Number of epochs to betweeen evaluations.",
+        help="Number of epochs to between evaluations.",
     )
     parser.add_argument(
         "--augmentation",
