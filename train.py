@@ -1,27 +1,6 @@
 import argparse
-import os
-import sys
-import warnings
-from pathlib import Path
 
-import torch
-import torch.distributed as dist
-import torch.optim as optim
-from generative.inferers import DiffusionInferer
-from generative.networks.nets import DiffusionModelUNet
-from generative.networks.schedulers import DDPMScheduler
-from monai.config import print_config
-from monai.utils import set_determinism
-from omegaconf import OmegaConf
-from tensorboardX import SummaryWriter
-from torch.nn.parallel import DistributedDataParallel
-
-from src.models.vqvae_2d import BaselineVQVAE2D
-from src.models.vqvae_dummy import DummyVQVAE
-from src.training_and_testing.training_functions import train_ldm
-from src.training_and_testing.util import get_training_data_loader
-
-warnings.filterwarnings("ignore")
+from src.trainers.base import BaseTrainer
 
 
 def parse_args():
@@ -32,15 +11,9 @@ def parse_args():
     parser.add_argument("--model_name", help="Name of model.")
     parser.add_argument("--training_ids", help="Location of file with training ids.")
     parser.add_argument("--validation_ids", help="Location of file with validation ids.")
-    parser.add_argument(
-        "--config_vqvae_file",
-        default="None",
-        help="Location of VQ-VAE config. None if not training a latent diffusion model.",
-    )
-    parser.add_argument("--config_diffusion_file", help="Location of config.")
-    parser.add_argument("--vqvae_checkpoint", help="VQVAE checkpoint path.")
+
     # training param
-    parser.add_argument("--batch_size", type=int, default=180, help="Training batch size.")
+    parser.add_argument("--batch_size", type=int, default=512, help="Training batch size.")
     parser.add_argument("--n_epochs", type=int, default=300, help="Number of epochs to train.")
     parser.add_argument(
         "--eval_freq",
@@ -68,139 +41,18 @@ def parse_args():
         help="Save a checkpoint every checkpoint_every epochs.",
     )
     parser.add_argument("--is_grayscale", type=int, default=0, help="Is data grayscale.")
-
+    parser.add_argument(
+        "--quick_test",
+        default=0,
+        type=int,
+        help="If True, runs through a single batch of the train and eval loop.",
+    )
     args = parser.parse_args()
     return args
-
-
-def main(args):
-    # initialise DDP if run was launched with torchrun
-    if "LOCAL_RANK" in os.environ:
-        print("Setting up DDP.")
-        ddp = True
-        # disable logging for processes except 0 on every node
-        local_rank = int(os.environ["LOCAL_RANK"])
-        if local_rank != 0:
-            f = open(os.devnull, "w")
-            sys.stdout = sys.stderr = f
-
-        # initialize the distributed training process, every GPU runs in a process
-        dist.init_process_group(backend="nccl", init_method="env://")
-        device = torch.device(f"cuda:{local_rank}")
-    else:
-        ddp = False
-        device = "cuda:0" if torch.cuda.is_available() else "cpu"
-
-    set_determinism(seed=args.seed)
-    print_config()
-    run_dir = Path(args.output_dir) / args.model_name
-    if run_dir.exists() and (run_dir / "checkpoint.pth").exists():
-        resume = True
-    else:
-        resume = False
-        run_dir.mkdir(exist_ok=True, parents=True)
-
-    print(f"Run directory: {str(run_dir)}")
-    print(f"Arguments: {str(args)}")
-    for k, v in vars(args).items():
-        print(f"  {k}: {v}")
-
-    writer_train = SummaryWriter(log_dir=str(run_dir / "train"))
-    writer_val = SummaryWriter(log_dir=str(run_dir / "val"))
-
-    print("Getting data...")
-    train_loader, val_loader = get_training_data_loader(
-        batch_size=args.batch_size,
-        training_ids=args.training_ids,
-        validation_ids=args.validation_ids,
-        augmentation=bool(args.augmentation),
-        num_workers=args.num_workers,
-        cache_data=bool(args.cache_data),
-        is_grayscale=bool(args.is_grayscale),
-    )
-
-    # Load VQVAE to produce the encoded samples
-    if args.config_vqvae_file != "None":
-        config_vqvae = OmegaConf.load(args.config_vqvae_file)
-        vqvae = BaselineVQVAE2D(**config_vqvae["stage1"])
-        if os.environ["HOME"] == "/root":
-            checkpoint = torch.load(args.vqvae_checkpoint)
-        else:
-            checkpoint = torch.load(args.vqvae_checkpoint)
-        print(f"Loaded VQVAE checkpoing {args.vqvae_checkpoint}")
-        vqvae.load_state_dict(checkpoint["network"])
-        vqvae.eval()
-    else:
-        vqvae = DummyVQVAE()
-
-    # Create model
-    print("Creating model...")
-    diffusion = DiffusionModelUNet(
-        spatial_dims=2,
-        in_channels=1 if args.is_grayscale else 3,
-        out_channels=1 if args.is_grayscale else 3,
-        num_channels=(128, 256, 256),
-        attention_levels=(False, False, True),
-        num_res_blocks=1,
-        num_head_channels=256,
-        with_conditioning=False,
-    )
-
-    scheduler = DDPMScheduler(
-        num_train_timesteps=1000,
-    )
-    inferer = DiffusionInferer(scheduler)
-    print(f"Let's use {torch.cuda.device_count()} GPUs!")
-    vqvae = vqvae.to(device)
-    diffusion = diffusion.to(device)
-
-    optimizer = optim.Adam(diffusion.parameters(), lr=0.000025)
-
-    # Get Checkpoint
-    best_loss = float("inf")
-    best_nll = float("inf")
-    start_epoch = 0
-    if resume:
-        print("Using checkpoint!")
-        checkpoint = torch.load(str(run_dir / "checkpoint.pth"))
-        diffusion.load_state_dict(checkpoint["diffusion"])
-        optimizer.load_state_dict(checkpoint["optimizer"])
-        start_epoch = checkpoint["epoch"]
-        best_loss = checkpoint["best_loss"]
-        best_nll = checkpoint["best_nll"]
-    else:
-        print("No checkpoint found.")
-
-    if ddp:
-        if args.config_vqvae_file != "None":
-            vqvae = DistributedDataParallel(vqvae, device_ids=[device])
-        diffusion = DistributedDataParallel(diffusion, device_ids=[device])
-
-    # Train model
-    print("Starting Training")
-    val_loss = train_ldm(
-        model=diffusion,
-        vqvae=vqvae,
-        scheduler=scheduler,
-        inferer=inferer,
-        start_epoch=start_epoch,
-        best_loss=best_loss,
-        train_loader=train_loader,
-        val_loader=val_loader,
-        optimizer=optimizer,
-        n_epochs=args.n_epochs,
-        eval_freq=args.eval_freq,
-        writer_train=writer_train,
-        writer_val=writer_val,
-        device=device,
-        run_dir=run_dir,
-        checkpoint_every=args.checkpoint_every,
-        best_nll=best_nll,
-        ddp=ddp,
-    )
 
 
 # to run using DDP, run torchrun --nproc_per_node=1 --nnodes=1 --node_rank=0  train.py --args
 if __name__ == "__main__":
     args = parse_args()
-    main(args)
+    trainer = BaseTrainer(args)
+    trainer.train(args)

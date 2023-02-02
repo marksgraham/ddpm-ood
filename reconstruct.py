@@ -13,16 +13,16 @@ from monai.config import print_config
 from monai.utils import set_determinism
 from omegaconf import OmegaConf
 from skimage.metrics import structural_similarity as ssim
-from torch.nn.functional import pad as torchpad
-from torch.nn.parallel import DistributedDataParallel
-from tqdm import tqdm
-
 from src.models.ddpm_2d import DDPM
 from src.models.plms import PLMSSampler
 from src.models.vqvae_2d import BaselineVQVAE2D
 from src.models.vqvae_dummy import DummyVQVAE
-from src.training_and_testing.PerceptualLoss import PerceptualLoss
-from src.training_and_testing.util import get_training_data_loader
+from torch.nn.functional import pad as torchpad
+from torch.nn.parallel import DistributedDataParallel
+from tqdm import tqdm
+
+from src.trainers.PerceptualLoss import PerceptualLoss
+from src.trainers.util import get_training_data_loader
 
 warnings.filterwarnings("ignore")
 
