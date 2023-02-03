@@ -1,6 +1,6 @@
 import argparse
 
-from src.trainers.base import BaseTrainer
+from src.trainers.trainer import Trainer
 
 
 def parse_args():
@@ -54,5 +54,5 @@ def parse_args():
 # to run using DDP, run torchrun --nproc_per_node=1 --nnodes=1 --node_rank=0  train.py --args
 if __name__ == "__main__":
     args = parse_args()
-    trainer = BaseTrainer(args)
+    trainer = Trainer(args)
     trainer.train(args)
