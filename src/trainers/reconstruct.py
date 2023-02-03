@@ -24,8 +24,8 @@ class Reconstruct(BaseTrainer):
         super().__init__(args)
 
         # set up dirs
-        out_dir = self.run_dir / "ood"
-        out_dir.mkdir(exist_ok=True)
+        self.out_dir = self.run_dir / "ood"
+        self.out_dir.mkdir(exist_ok=True)
 
         # set up loaders
         self.val_loader = get_training_data_loader(
