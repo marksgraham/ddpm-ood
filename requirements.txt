@@ -2,10 +2,10 @@ lpips==0.1.4
 matplotlib
 torch==1.13.1
 monai[nibabel]==1.1.0
+#git+https://github.com/Project-MONAI/GenerativeModels
 pandas
 scipy
 tensorboard
-tensorboardX
 tqdm
 einops>=0.3.2
 omegaconf==2.1.1
