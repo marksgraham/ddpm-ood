@@ -1,5 +1,4 @@
 import os
-import sys
 from pathlib import Path
 
 import torch
@@ -23,9 +22,9 @@ class BaseTrainer:
             self.ddp = True
             # disable logging for processes except 0 on every node
             local_rank = int(os.environ["LOCAL_RANK"])
-            if local_rank != 0:
-                f = open(os.devnull, "w")
-                sys.stdout = sys.stderr = f
+            # if local_rank != 0:
+            #     f = open(os.devnull, "w")
+            #     sys.stdout = sys.stderr = f
 
             # initialize the distributed training process, every GPU runs in a process
             dist.init_process_group(backend="nccl", init_method="env://")

@@ -5,7 +5,9 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 import torch
+import torch.distributed as dist
 from generative.networks.schedulers import PNDMScheduler
+from torch.cuda.amp import autocast
 from torch.nn.functional import pad
 
 # from skimage.metrics import structural_similarity as ssim
@@ -36,7 +38,7 @@ class Reconstruct(BaseTrainer):
             only_val=True,
             num_workers=args.num_workers,
             num_val_workers=args.num_workers,
-            cache_data=False,
+            cache_data=bool(args.cache_data),
             drop_last=bool(args.drop_last),
             first_n=int(args.first_n_val) if args.first_n_val else args.first_n_val,
             is_grayscale=bool(args.is_grayscale),
@@ -50,13 +52,17 @@ class Reconstruct(BaseTrainer):
             only_val=True,
             num_workers=args.num_workers,
             num_val_workers=args.num_workers,
-            cache_data=False,
+            cache_data=bool(args.cache_data),
             drop_last=bool(args.drop_last),
             first_n=int(args.first_n) if args.first_n else args.first_n,
             is_grayscale=bool(args.is_grayscale),
         )
 
-    def get_scores(self, loader, dataset_name):
+    def get_scores(self, loader, dataset_name, inference_skip_factor):
+        if dist.is_initialized():
+            print(f"{dist.get_rank()}: {dataset_name}")
+        else:
+            print(f"{dataset_name}")
         results = []
         pl = PerceptualLoss(
             dimensions=2,
@@ -70,28 +76,30 @@ class Reconstruct(BaseTrainer):
         pndm_scheduler = PNDMScheduler(num_train_timesteps=1000, skip_prk_steps=True)
         pndm_scheduler.set_timesteps(100)
         pndm_timesteps = pndm_scheduler.timesteps
+        pndm_start_points = reversed(pndm_timesteps)[1::inference_skip_factor]
         with torch.no_grad():
             for batch in loader:
                 t1 = time.time()
                 images = batch["image"].to(self.device)
                 # loop over different values to reconstruct from
-                for t_start in reversed(pndm_timesteps)[1:]:
-                    noise = torch.randn_like(images).to(self.device)
-                    start_timesteps = torch.Tensor([t_start] * images.shape[0]).long()
+                for t_start in pndm_start_points:
+                    with autocast(enabled=True):
+                        noise = torch.randn_like(images).to(self.device)
+                        start_timesteps = torch.Tensor([t_start] * images.shape[0]).long()
 
-                    reconstructions = pndm_scheduler.add_noise(
-                        original_samples=images, noise=noise, timesteps=start_timesteps
-                    )
-                    # perform reconstruction
-                    for step in pndm_timesteps[pndm_timesteps <= t_start]:
-                        timesteps = torch.Tensor([step] * images.shape[0]).long()
-                        model_output = self.model(
-                            reconstructions, timesteps=timesteps.to(self.device)
+                        reconstructions = pndm_scheduler.add_noise(
+                            original_samples=images, noise=noise, timesteps=start_timesteps
                         )
-                        # 2. compute previous image: x_t -> x_t-1
-                        reconstructions, _ = pndm_scheduler.step(
-                            model_output, step, reconstructions
-                        )
+                        # perform reconstruction
+                        for step in pndm_timesteps[pndm_timesteps <= t_start]:
+                            timesteps = torch.Tensor([step] * images.shape[0]).long()
+                            model_output = self.model(
+                                reconstructions, timesteps=timesteps.to(self.device)
+                            )
+                            # 2. compute previous image: x_t -> x_t-1
+                            reconstructions, _ = pndm_scheduler.step(
+                                model_output, step, reconstructions
+                            )
                     # try clamping the reconstructions
                     reconstructions.clamp_(0, 1)
                     # compute similarity
@@ -115,7 +123,7 @@ class Reconstruct(BaseTrainer):
                             {
                                 "filename": stem,
                                 "type": dataset_name,
-                                "t": t_start,
+                                "t": t_start.item(),
                                 "perceptual_difference": perceptual_difference[b].item(),
                                 # "ssim": ssim_metric,
                                 "mse": mse_metric[b].item(),
@@ -134,17 +142,20 @@ class Reconstruct(BaseTrainer):
                     # plt.tight_layout()
                     # plt.show()
                 t2 = time.time()
-                print(f"Took {t2-t1}s for a batch size of {images.shape[0]}")
+                if dist.is_initialized():
+                    print(f"{dist.get_rank()}: Took {t2-t1}s for a batch size of {images.shape[0]}")
+                else:
+                    print(f"Took {t2-t1}s for a batch size of {images.shape[0]}")
         return results
 
     def reconstruct(self, args):
         if bool(args.run_val):
-            results_list = self.get_scores(self.val_loader, "val")
+            results_list = self.get_scores(self.val_loader, "val", args.inference_skip_factor)
             results_df = pd.DataFrame(results_list)
             results_df.to_csv(self.out_dir / "results_val.csv")
 
         if bool(args.run_in):
-            results_list = self.get_scores(self.in_loader, "in")
+            results_list = self.get_scores(self.in_loader, "in", args.inference_skip_factor)
             results_df = pd.DataFrame(results_list)
             results_df.to_csv(self.out_dir / "results_in.csv")
 
@@ -161,16 +172,14 @@ class Reconstruct(BaseTrainer):
                         only_val=True,
                         num_workers=args.num_workers,
                         num_val_workers=args.num_workers,
-                        cache_data=False,
+                        cache_data=bool(args.cache_data),
                         drop_last=bool(args.drop_last),
                         first_n=int(args.first_n) if args.first_n else args.first_n,
                         is_grayscale=bool(args.is_grayscale),
                         add_vflip=True,
                     )
                     dataset_name = Path(out).stem.split("_")[0] + "_vflip"
-                    results_list = self.get_scores(out_loader, "out")
-                    results_df = pd.DataFrame(results_list)
-                    results_df.to_csv(self.out_dir / f"results_{dataset_name}.csv")
+
                 elif "hflip" in out:
                     out = out.replace("_hflip", "")
                     out_loader = get_training_data_loader(
@@ -181,16 +190,13 @@ class Reconstruct(BaseTrainer):
                         only_val=True,
                         num_workers=args.num_workers,
                         num_val_workers=args.num_workers,
-                        cache_data=False,
+                        cache_data=bool(args.cache_data),
                         drop_last=bool(args.drop_last),
                         first_n=int(args.first_n) if args.first_n else args.first_n,
                         is_grayscale=bool(args.is_grayscale),
                         add_hflip=True,
                     )
-                    dataset_name = Path(out).stem.split("_")[0] + "_vflip"
-                    results_list = self.get_scores(out_loader, "out")
-                    results_df = pd.DataFrame(results_list)
-                    results_df.to_csv(self.out_dir / f"results_{dataset_name}.csv")
+                    dataset_name = Path(out).stem.split("_")[0] + "_hflip"
                 else:
                     out_loader = get_training_data_loader(
                         batch_size=args.batch_size,
@@ -200,12 +206,12 @@ class Reconstruct(BaseTrainer):
                         only_val=True,
                         num_workers=args.num_workers,
                         num_val_workers=args.num_workers,
-                        cache_data=False,
+                        cache_data=bool(args.cache_data),
                         drop_last=bool(args.drop_last),
                         first_n=int(args.first_n) if args.first_n else args.first_n,
                         is_grayscale=bool(args.is_grayscale),
                     )
-                    dataset_name = Path(out).stem.split("_")[0] + "_vflip"
-                    results_list = self.get_scores(out_loader, "out")
-                    results_df = pd.DataFrame(results_list)
-                    results_df.to_csv(self.out_dir / f"results_{dataset_name}.csv")
+                    dataset_name = Path(out).stem.split("_")[0]
+                results_list = self.get_scores(out_loader, "out", args.inference_skip_factor)
+                results_df = pd.DataFrame(results_list)
+                results_df.to_csv(self.out_dir / f"results_{dataset_name}.csv")

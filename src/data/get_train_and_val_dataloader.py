@@ -4,10 +4,7 @@ from monai import transforms
 from monai.data import CacheDataset, Dataset, ThreadDataLoader, partition_dataset
 
 
-def get_data_dicts(
-    ids_path: str,
-    shuffle: bool = False,
-):
+def get_data_dicts(ids_path: str, shuffle: bool = False, first_n=False):
     """Get data dicts for data loaders."""
     df = pd.read_csv(ids_path, sep=",")
     if shuffle:
@@ -16,7 +13,8 @@ def get_data_dicts(
     data_dicts = []
     for row in df:
         data_dicts.append({"image": (row)})
-
+    if first_n is not False:
+        data_dicts = data_dicts[:first_n]
     print(f"Found {len(data_dicts)} subjects.")
     if dist.is_initialized():
         print(dist.get_rank())
@@ -76,12 +74,7 @@ def get_training_data_loader(
     else:
         train_transforms = val_transforms
 
-    val_dicts = get_data_dicts(
-        validation_ids,
-        shuffle=False,
-    )
-    if first_n:
-        val_dicts = val_dicts[:first_n]
+    val_dicts = get_data_dicts(validation_ids, shuffle=False, first_n=first_n)
     if cache_data:
         val_ds = CacheDataset(
             data=val_dicts,
@@ -104,12 +97,7 @@ def get_training_data_loader(
     if only_val:
         return val_loader
 
-    train_dicts = get_data_dicts(
-        training_ids,
-        shuffle=False,
-    )
-    if first_n:
-        train_dicts = train_dicts[:first_n]
+    train_dicts = get_data_dicts(training_ids, shuffle=False, first_n=first_n)
     if cache_data:
         train_ds = CacheDataset(
             data=train_dicts,
