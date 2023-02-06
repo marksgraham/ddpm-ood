@@ -47,7 +47,7 @@ class BaseTrainer:
         ).to(self.device)
 
         self.scheduler = DDPMScheduler(
-            num_train_timesteps=1000,
+            num_train_timesteps=1000, prediction_type=args.prediction_type
         )
         self.inferer = DiffusionInferer(self.scheduler)
 

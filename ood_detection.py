@@ -44,10 +44,13 @@ def main(args):
     out_dir.mkdir(exist_ok=True)
     results_df_val = pd.read_csv(out_dir / "results_val.csv")
     all_t_values = results_df_val["t"].unique()
-    T_SKIP_FACTOR = args.t_skip
     MAX_T = args.max_t
+    T_SKIP_FACTOR = 1
     t_values = all_t_values[::T_SKIP_FACTOR]
     t_values = t_values[(t_values < MAX_T)]
+
+    # t_values = t_values[(t_values < 500)]
+    # t_values = t_values[(t_values > 20)]
     # calculator total number of evaluation steps for this set-up
     total_steps = 0
     pndm_scheduler = PNDMScheduler(num_train_timesteps=1000, skip_prk_steps=True)
@@ -58,8 +61,8 @@ def main(args):
         steps_for_this_t = pndm_timesteps[pndm_timesteps <= t]
         total_steps += len(steps_for_this_t)
     # plot_target = 'perceptual_difference'
-    plot_target = "mse"
-    # plot_target = "mse+perceptual"
+    # plot_target = "mse"
+    plot_target = "mse+perceptual"
     print(
         f"SETTING MAX_T to {MAX_T} and T_SKIP to {T_SKIP_FACTOR} with a total of"
         f" {len(t_values)} starting points {total_steps} model evaluations"
@@ -125,6 +128,23 @@ def main(args):
             target = f"z_score_{plot_target}"
         results_df_mean = results_df.groupby(["filename", "type"]).mean().reset_index()
 
+        # do some plotting
+        import matplotlib.pyplot as plt
+
+        plt.figure()
+        colors = {"in": "b", "out": "r"}
+        for type in ["in", "out"]:
+            plot_df = results_df.loc[results_df["type"] == type]
+            unique_ids = plot_df["filename"].unique()
+
+            for id in unique_ids[:50]:
+                plt.plot(
+                    plot_df.loc[plot_df["filename"] == id]["t"],
+                    plot_df.loc[plot_df["filename"] == id][f"z_score_{plot_target}"],
+                    color=colors[type],
+                    alpha=0.3,
+                )
+        plt.show()
         # calculate ROC scores
         # in-distribution scores/class
         all_scores = results_df_mean.loc[results_df_mean["type"] == "in"][[target]].values.tolist()

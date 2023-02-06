@@ -7,10 +7,10 @@ import pandas as pd
 import torch
 import torch.distributed as dist
 from generative.networks.schedulers import PNDMScheduler
+from skimage.metrics import structural_similarity as ssim
 from torch.cuda.amp import autocast
 from torch.nn.functional import pad
 
-# from skimage.metrics import structural_similarity as ssim
 from src.data.get_train_and_val_dataloader import get_training_data_loader
 from src.trainers.PerceptualLoss import PerceptualLoss
 
@@ -110,37 +110,42 @@ class Reconstruct(BaseTrainer):
                             (2, 2, 2, 2),
                         ),
                     )
-                    # ssim_metric = 1 - ssim(
-                    #                 images.squeeze().cpu().numpy(),
-                    #                 reconstructions[b, ...].clamp(0, 1).squeeze().cpu().numpy(),
-                    #             )
 
                     mse_metric = torch.square(images - reconstructions).mean(axis=(1, 2, 3))
                     for b in range(images.shape[0]):
                         filename = batch["image_meta_dict"]["filename_or_obj"][b]
                         stem = Path(filename).stem.replace(".nii", "").replace(".gz", "")
+                        # ssim is done per-batch
+                        ssim_metric = 1 - ssim(
+                            images[b, ...].squeeze().cpu().numpy(),
+                            reconstructions[b, ...].squeeze().cpu().numpy(),
+                            channel_axis=0,
+                        )
                         results.append(
                             {
                                 "filename": stem,
                                 "type": dataset_name,
                                 "t": t_start.item(),
                                 "perceptual_difference": perceptual_difference[b].item(),
-                                # "ssim": ssim_metric,
+                                "ssim": ssim_metric,
                                 "mse": mse_metric[b].item(),
                             }
                         )
-                    # # plot
-                    # fig, ax = plt.subplots(8, 2, figsize=(2, 8))
-                    # for i in range(8):
-                    #     plt.subplot(8, 2, i * 2 + 1)
-                    #     plt.imshow(shuffle(images[i, ...]), vmin=0, vmax=1, cmap="gray")
-                    #     plt.axis("off")
-                    #     plt.subplot(8, 2, i * 2 + 2)
-                    #     plt.imshow(shuffle(reconstructions[i, ...]), vmin=0, vmax=1, cmap="gray")
-                    #     plt.axis("off")
-                    # plt.suptitle(f"Recon from: {t_start}")
-                    # plt.tight_layout()
-                    # plt.show()
+                    # plot
+                    import matplotlib.pyplot as plt
+
+                    fig, ax = plt.subplots(8, 2, figsize=(2, 8))
+                    for i in range(8):
+                        plt.subplot(8, 2, i * 2 + 1)
+                        plt.imshow(shuffle(images[i, ...]), vmin=0, vmax=1, cmap="gray")
+                        plt.axis("off")
+                        plt.subplot(8, 2, i * 2 + 2)
+                        plt.imshow(shuffle(reconstructions[i, ...]), vmin=0, vmax=1, cmap="gray")
+                        plt.title(f"{mse_metric[i].item():.3f}")
+                        plt.axis("off")
+                    plt.suptitle(f"Recon from: {t_start}")
+                    plt.tight_layout()
+                    plt.show()
                 t2 = time.time()
                 if dist.is_initialized():
                     print(f"{dist.get_rank()}: Took {t2-t1}s for a batch size of {images.shape[0]}")

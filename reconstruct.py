@@ -12,7 +12,11 @@ def parse_args():
     parser.add_argument("--validation_ids", help="Location of file with validation ids.")
     parser.add_argument("--in_ids", help="Location of file with inlier ids.")
     parser.add_argument("--out_ids", help="List of location of file with outlier ids.")
-
+    parser.add_argument(
+        "--prediction_type",
+        default="epsilon",
+        help="Scheduler prediction type to use: 'epsilon, sample, or v_prediction.",
+    )
     # inference param
     parser.add_argument("--batch_size", type=int, default=256, help="Batch size.")
     parser.add_argument(
