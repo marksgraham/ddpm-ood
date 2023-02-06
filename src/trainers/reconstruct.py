@@ -146,7 +146,15 @@ class Reconstruct(BaseTrainer):
                     print(f"{dist.get_rank()}: Took {t2-t1}s for a batch size of {images.shape[0]}")
                 else:
                     print(f"Took {t2-t1}s for a batch size of {images.shape[0]}")
-        return results
+        # gather results from all processes
+        if dist.is_initialized():
+            all_results = [None] * dist.get_world_size()
+            dist.all_gather_object(all_results, results)
+            # un-nest
+            all_results = [item for sublist in all_results for item in sublist]
+            return all_results
+        else:
+            return results
 
     def reconstruct(self, args):
         if bool(args.run_val):
