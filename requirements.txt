@@ -13,3 +13,4 @@ imageio
 scikit-learn
 seaborn
 scikit-image
+x-transformers==1.8.1
