@@ -32,6 +32,11 @@ def parse_args():
         default="epsilon",
         help="Scheduler prediction type to use: 'epsilon, sample, or v_prediction.",
     )
+    parser.add_argument(
+        "--model_type",
+        default="small",
+        help="Small or big model.",
+    )
     parser.add_argument("--num_workers", type=int, default=8, help="Number of loader workers")
     parser.add_argument(
         "--cache_data",

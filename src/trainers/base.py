@@ -36,17 +36,29 @@ class BaseTrainer:
             print(f"  {k}: {v}")
 
         # set up model
-        self.model = DiffusionModelUNet(
-            spatial_dims=2,
-            in_channels=1 if args.is_grayscale else 3,
-            out_channels=1 if args.is_grayscale else 3,
-            num_channels=(128, 256, 256),
-            attention_levels=(False, False, True),
-            num_res_blocks=1,
-            num_head_channels=256,
-            with_conditioning=False,
-        ).to(self.device)
-
+        if args.model_type == "small":
+            self.model = DiffusionModelUNet(
+                spatial_dims=2,
+                in_channels=1 if args.is_grayscale else 3,
+                out_channels=1 if args.is_grayscale else 3,
+                num_channels=(128, 256, 256),
+                attention_levels=(False, False, True),
+                num_res_blocks=1,
+                num_head_channels=256,
+                with_conditioning=False,
+            ).to(self.device)
+        else:
+            self.model = DiffusionModelUNet(
+                spatial_dims=2,
+                in_channels=1 if args.is_grayscale else 3,
+                out_channels=1 if args.is_grayscale else 3,
+                num_channels=(256, 512, 768),
+                attention_levels=(True, True, True),
+                num_res_blocks=2,
+                num_head_channels=256,
+                with_conditioning=False,
+            ).to(self.device)
+        print(f"{sum(p.numel() for p in self.model.parameters()):,} model parameters")
         self.scheduler = DDPMScheduler(
             num_train_timesteps=1000, prediction_type=args.prediction_type
         )
