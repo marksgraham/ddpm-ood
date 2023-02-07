@@ -132,20 +132,23 @@ class Reconstruct(BaseTrainer):
                             }
                         )
                     # plot
-                    import matplotlib.pyplot as plt
+                    if not dist.is_initialized():
+                        import matplotlib.pyplot as plt
 
-                    fig, ax = plt.subplots(8, 2, figsize=(2, 8))
-                    for i in range(8):
-                        plt.subplot(8, 2, i * 2 + 1)
-                        plt.imshow(shuffle(images[i, ...]), vmin=0, vmax=1, cmap="gray")
-                        plt.axis("off")
-                        plt.subplot(8, 2, i * 2 + 2)
-                        plt.imshow(shuffle(reconstructions[i, ...]), vmin=0, vmax=1, cmap="gray")
-                        plt.title(f"{mse_metric[i].item():.3f}")
-                        plt.axis("off")
-                    plt.suptitle(f"Recon from: {t_start}")
-                    plt.tight_layout()
-                    plt.show()
+                        fig, ax = plt.subplots(8, 2, figsize=(2, 8))
+                        for i in range(8):
+                            plt.subplot(8, 2, i * 2 + 1)
+                            plt.imshow(shuffle(images[i, ...]), vmin=0, vmax=1, cmap="gray")
+                            plt.axis("off")
+                            plt.subplot(8, 2, i * 2 + 2)
+                            plt.imshow(
+                                shuffle(reconstructions[i, ...]), vmin=0, vmax=1, cmap="gray"
+                            )
+                            plt.title(f"{mse_metric[i].item():.3f}")
+                            plt.axis("off")
+                        plt.suptitle(f"Recon from: {t_start}")
+                        plt.tight_layout()
+                        plt.show()
                 t2 = time.time()
                 if dist.is_initialized():
                     print(f"{dist.get_rank()}: Took {t2-t1}s for a batch size of {images.shape[0]}")
