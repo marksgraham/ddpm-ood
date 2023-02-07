@@ -61,8 +61,9 @@ def main(args):
         steps_for_this_t = pndm_timesteps[pndm_timesteps <= t]
         total_steps += len(steps_for_this_t)
     # plot_target = 'perceptual_difference'
-    # plot_target = "mse"
+    plot_target = "mse"
     plot_target = "mse+perceptual"
+    plot_target = "ssim"
     print(
         f"SETTING MAX_T to {MAX_T} and T_SKIP to {T_SKIP_FACTOR} with a total of"
         f" {len(t_values)} starting points {total_steps} model evaluations"
@@ -102,7 +103,7 @@ def main(args):
         results_df_out = results_df_out[results_df_out["t"].isin(t_values)]
         results_df = pd.concat((results_df_in, results_df_out))
         # get z-scores for each plot_target using the val-set
-        for target in ["perceptual_difference", "mse"]:
+        for target in ["perceptual_difference", "mse", "ssim"]:
             # compute mean and std for each t value on the va
             results_df_val_agg = (
                 results_df_val.groupby(["t"])

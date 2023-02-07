@@ -8,6 +8,7 @@ import numpy as np
 import pandas as pd
 import torch
 import torch.distributed as dist
+from generative.metrics import MSSSIM
 from generative.networks.schedulers import PNDMScheduler
 from skimage.metrics import structural_similarity as ssim
 from torch.cuda.amp import autocast
@@ -76,6 +77,11 @@ class Reconstruct(BaseTrainer):
             lpips_normalize=True,
             spatial=False,
         ).to(self.device)
+        ms_ssim = MSSSIM(
+            data_range=torch.tensor(1.0).to(self.device),
+            spatial_dims=2,
+            weights=torch.Tensor([0.0448, 0.2856]).to(self.device),
+        )
 
         self.model.eval()
         pndm_scheduler = PNDMScheduler(num_train_timesteps=1000, skip_prk_steps=True)
@@ -117,6 +123,8 @@ class Reconstruct(BaseTrainer):
                     )
 
                     mse_metric = torch.square(images - reconstructions).mean(axis=(1, 2, 3))
+                    all_ssim = []
+                    all_msssim = []
                     for b in range(images.shape[0]):
                         filename = batch["image_meta_dict"]["filename_or_obj"][b]
                         stem = Path(filename).stem.replace(".nii", "").replace(".gz", "")
@@ -126,6 +134,15 @@ class Reconstruct(BaseTrainer):
                             reconstructions[b, ...].squeeze().cpu().numpy(),
                             channel_axis=0,
                         )
+                        all_ssim.append(ssim_metric)
+
+                        msssim_metric = (
+                            1
+                            - ms_ssim._compute_metric(
+                                images[b, None, ...], reconstructions[b, None, ...]
+                            ).item()
+                        )
+                        all_msssim.append(msssim_metric)
                         results.append(
                             {
                                 "filename": stem,
@@ -133,6 +150,7 @@ class Reconstruct(BaseTrainer):
                                 "t": t_start.item(),
                                 "perceptual_difference": perceptual_difference[b].item(),
                                 "ssim": ssim_metric,
+                                "msssim": msssim_metric,
                                 "mse": mse_metric[b].item(),
                             }
                         )
@@ -149,7 +167,8 @@ class Reconstruct(BaseTrainer):
                             plt.imshow(
                                 shuffle(reconstructions[i, ...]), vmin=0, vmax=1, cmap="gray"
                             )
-                            plt.title(f"{mse_metric[i].item():.3f}")
+                            # plt.title(f"{mse_metric[i].item():.3f}")
+                            plt.title(f"{all_msssim[i]:.3f}")
                             plt.axis("off")
                         plt.suptitle(f"Recon from: {t_start}")
                         plt.tight_layout()
