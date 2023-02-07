@@ -1,4 +1,6 @@
 # import matplotlib.pyplot as plt
+import os
+import sys
 import time
 from pathlib import Path
 
@@ -60,6 +62,9 @@ class Reconstruct(BaseTrainer):
 
     def get_scores(self, loader, dataset_name, inference_skip_factor):
         if dist.is_initialized():
+            # temporarily enable logging on every node
+            sys.stdout = sys.__stdout__
+            sys.stderr = sys.__stderr__
             print(f"{dist.get_rank()}: {dataset_name}")
         else:
             print(f"{dataset_name}")
@@ -160,6 +165,11 @@ class Reconstruct(BaseTrainer):
             dist.all_gather_object(all_results, results)
             # un-nest
             all_results = [item for sublist in all_results for item in sublist]
+            # return to only logging on the first device
+            local_rank = int(os.environ["LOCAL_RANK"])
+            if local_rank != 0:
+                f = open(os.devnull, "w")
+                sys.stdout = sys.stderr = f
             return all_results
         else:
             return results

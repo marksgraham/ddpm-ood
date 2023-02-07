@@ -1,4 +1,5 @@
 import os
+import sys
 from pathlib import Path
 
 import torch
@@ -12,19 +13,15 @@ from torch.nn.parallel import DistributedDataParallel
 
 class BaseTrainer:
     def __init__(self, args):
-        print(f"Arguments: {str(args)}")
-        for k, v in vars(args).items():
-            print(f"  {k}: {v}")
-
         # initialise DDP if run was launched with torchrun
         if "LOCAL_RANK" in os.environ:
             print("Setting up DDP.")
             self.ddp = True
             # disable logging for processes except 0 on every node
             local_rank = int(os.environ["LOCAL_RANK"])
-            # if local_rank != 0:
-            #     f = open(os.devnull, "w")
-            #     sys.stdout = sys.stderr = f
+            if local_rank != 0:
+                f = open(os.devnull, "w")
+                sys.stdout = sys.stderr = f
 
             # initialize the distributed training process, every GPU runs in a process
             dist.init_process_group(backend="nccl", init_method="env://")
@@ -33,6 +30,10 @@ class BaseTrainer:
             self.ddp = False
             self.device = "cuda:0" if torch.cuda.is_available() else "cpu"
         torch.cuda.set_device(self.device)
+
+        print(f"Arguments: {str(args)}")
+        for k, v in vars(args).items():
+            print(f"  {k}: {v}")
 
         # set up model
         self.model = DiffusionModelUNet(
