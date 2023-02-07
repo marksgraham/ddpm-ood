@@ -47,7 +47,7 @@ class BaseTrainer:
                 num_head_channels=256,
                 with_conditioning=False,
             ).to(self.device)
-        else:
+        elif args.model_type == "big":
             self.model = DiffusionModelUNet(
                 spatial_dims=2,
                 in_channels=1 if args.is_grayscale else 3,
@@ -58,6 +58,8 @@ class BaseTrainer:
                 num_head_channels=256,
                 with_conditioning=False,
             ).to(self.device)
+        else:
+            raise ValueError(f"Do not recognise model type {args.model_type}")
         print(f"{sum(p.numel() for p in self.model.parameters()):,} model parameters")
         self.scheduler = DDPMScheduler(
             num_train_timesteps=1000, prediction_type=args.prediction_type

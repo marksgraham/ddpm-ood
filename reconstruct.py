@@ -17,6 +17,11 @@ def parse_args():
         default="epsilon",
         help="Scheduler prediction type to use: 'epsilon, sample, or v_prediction.",
     )
+    parser.add_argument(
+        "--model_type",
+        default="small",
+        help="Small or big model.",
+    )
     # inference param
     parser.add_argument("--batch_size", type=int, default=256, help="Batch size.")
     parser.add_argument(
