@@ -116,13 +116,16 @@ class Reconstruct(BaseTrainer):
                     # try clamping the reconstructions
                     reconstructions.clamp_(0, 1)
                     # compute similarity
-                    perceptual_difference = pl(
-                        pad(images, (2, 2, 2, 2)),
-                        pad(
-                            reconstructions,
-                            (2, 2, 2, 2),
-                        ),
-                    )
+                    if images.shape[3] == 28:
+                        perceptual_difference = pl(
+                            pad(images, (2, 2, 2, 2)),
+                            pad(
+                                reconstructions,
+                                (2, 2, 2, 2),
+                            ),
+                        )
+                    else:
+                        perceptual_difference = pl(images, reconstructions)
 
                     mse_metric = torch.square(images - reconstructions).mean(axis=(1, 2, 3))
                     all_ssim = []
@@ -170,7 +173,7 @@ class Reconstruct(BaseTrainer):
                                 shuffle(reconstructions[i, ...]), vmin=0, vmax=1, cmap="gray"
                             )
                             # plt.title(f"{mse_metric[i].item():.3f}")
-                            plt.title(f"{mse_metric[i].item():.3f}")
+                            plt.title(f"{perceptual_difference[i].item():.3f}")
                             plt.axis("off")
                         plt.suptitle(f"Recon from: {t_start}")
                         plt.tight_layout()
