@@ -31,7 +31,7 @@ class Reconstruct(BaseTrainer):
         # set up dirs
         self.out_dir = self.run_dir / "ood"
         self.out_dir.mkdir(exist_ok=True)
-
+        self.prediction_type = args.prediction_type
         # set up loaders
         self.val_loader = get_training_data_loader(
             batch_size=args.batch_size,
@@ -84,7 +84,9 @@ class Reconstruct(BaseTrainer):
         )
 
         self.model.eval()
-        pndm_scheduler = PNDMScheduler(num_train_timesteps=1000, skip_prk_steps=True)
+        pndm_scheduler = PNDMScheduler(
+            num_train_timesteps=1000, skip_prk_steps=True, prediction_type=self.prediction_type
+        )
         pndm_scheduler.set_timesteps(100)
         pndm_timesteps = pndm_scheduler.timesteps
         pndm_start_points = reversed(pndm_timesteps)[1::inference_skip_factor]
@@ -168,7 +170,7 @@ class Reconstruct(BaseTrainer):
                                 shuffle(reconstructions[i, ...]), vmin=0, vmax=1, cmap="gray"
                             )
                             # plt.title(f"{mse_metric[i].item():.3f}")
-                            plt.title(f"{all_msssim[i]:.3f}")
+                            plt.title(f"{mse_metric[i].item():.3f}")
                             plt.axis("off")
                         plt.suptitle(f"Recon from: {t_start}")
                         plt.tight_layout()
