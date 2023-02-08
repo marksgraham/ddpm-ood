@@ -32,7 +32,7 @@ class Reconstruct(BaseTrainer):
         self.out_dir = self.run_dir / "ood"
         self.out_dir.mkdir(exist_ok=True)
         self.prediction_type = args.prediction_type
-        self.beta_scheduler = args.beta_scheduler
+        self.beta_schedule = args.beta_schedule
         self.beta_start = args.beta_start
         self.beta_end = args.beta_end
         # set up loaders
