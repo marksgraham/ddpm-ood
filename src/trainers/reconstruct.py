@@ -32,6 +32,9 @@ class Reconstruct(BaseTrainer):
         self.out_dir = self.run_dir / "ood"
         self.out_dir.mkdir(exist_ok=True)
         self.prediction_type = args.prediction_type
+        self.beta_scheduler = args.beta_scheduler
+        self.beta_start = args.beta_start
+        self.beta_end = args.beta_end
         # set up loaders
         self.val_loader = get_training_data_loader(
             batch_size=args.batch_size,
@@ -85,7 +88,12 @@ class Reconstruct(BaseTrainer):
 
         self.model.eval()
         pndm_scheduler = PNDMScheduler(
-            num_train_timesteps=1000, skip_prk_steps=True, prediction_type=self.prediction_type
+            num_train_timesteps=1000,
+            skip_prk_steps=True,
+            prediction_type=self.prediction_type,
+            beta_schedule=self.beta_schedule,
+            beta_start=self.beta_start,
+            beta_end=self.beta_end,
         )
         pndm_scheduler.set_timesteps(100)
         pndm_timesteps = pndm_scheduler.timesteps

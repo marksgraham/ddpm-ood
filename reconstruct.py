@@ -12,6 +12,8 @@ def parse_args():
     parser.add_argument("--validation_ids", help="Location of file with validation ids.")
     parser.add_argument("--in_ids", help="Location of file with inlier ids.")
     parser.add_argument("--out_ids", help="List of location of file with outlier ids.")
+
+    # model params
     parser.add_argument(
         "--prediction_type",
         default="epsilon",
@@ -21,6 +23,23 @@ def parse_args():
         "--model_type",
         default="small",
         help="Small or big model.",
+    )
+    parser.add_argument(
+        "--beta_schedule",
+        default="linear",
+        help="Linear or scaled linear",
+    )
+    parser.add_argument(
+        "--beta_start",
+        type=float,
+        default=1e-4,
+        help="Beta start.",
+    )
+    parser.add_argument(
+        "--beta_end",
+        type=float,
+        default=2e-2,
+        help="Beta end.",
     )
     # inference param
     parser.add_argument("--batch_size", type=int, default=256, help="Batch size.")

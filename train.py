@@ -12,6 +12,34 @@ def parse_args():
     parser.add_argument("--training_ids", help="Location of file with training ids.")
     parser.add_argument("--validation_ids", help="Location of file with validation ids.")
 
+    # model params
+    parser.add_argument(
+        "--prediction_type",
+        default="epsilon",
+        help="Scheduler prediction type to use: 'epsilon, sample, or v_prediction.",
+    )
+    parser.add_argument(
+        "--model_type",
+        default="small",
+        help="Small or big model.",
+    )
+    parser.add_argument(
+        "--beta_schedule",
+        default="linear",
+        help="Linear or scaled linear",
+    )
+    parser.add_argument(
+        "--beta_start",
+        type=float,
+        default=1e-4,
+        help="Beta start.",
+    )
+    parser.add_argument(
+        "--beta_end",
+        type=float,
+        default=2e-2,
+        help="Beta end.",
+    )
     # training param
     parser.add_argument("--batch_size", type=int, default=512, help="Training batch size.")
     parser.add_argument("--n_epochs", type=int, default=300, help="Number of epochs to train.")
@@ -27,16 +55,7 @@ def parse_args():
         default=1,
         help="Use of augmentation, 1 (True) or 0 (False).",
     )
-    parser.add_argument(
-        "--prediction_type",
-        default="epsilon",
-        help="Scheduler prediction type to use: 'epsilon, sample, or v_prediction.",
-    )
-    parser.add_argument(
-        "--model_type",
-        default="small",
-        help="Small or big model.",
-    )
+
     parser.add_argument("--num_workers", type=int, default=8, help="Number of loader workers")
     parser.add_argument(
         "--cache_data",

@@ -62,7 +62,11 @@ class BaseTrainer:
             raise ValueError(f"Do not recognise model type {args.model_type}")
         print(f"{sum(p.numel() for p in self.model.parameters()):,} model parameters")
         self.scheduler = DDPMScheduler(
-            num_train_timesteps=1000, prediction_type=args.prediction_type
+            num_train_timesteps=1000,
+            prediction_type=args.prediction_type,
+            beta_schedule=args.beta_schedule,
+            beta_start=args.beta_start,
+            beta_end=args.beta_end,
         )
         self.inferer = DiffusionInferer(self.scheduler)
 

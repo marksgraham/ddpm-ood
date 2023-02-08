@@ -100,12 +100,12 @@ python ood_detection.py \
 ```
 
 ## Acknowledgements
-This repository is based on the excellent [Latent Diffusion repository](https://github.com/CompVis/latent-diffusion) 
+This repository is based on the excellent [Latent Diffusion repository](https://github.com/CompVis/latent-diffusion)
 (although the models in this work are vanilla diffusion models) - many thanks!
 
 
 ## Citation
-If you use this codebase, please cite 
+If you use this codebase, please cite
 ```bib
 @article{graham2022denoising,
   title={Denoising Diffusion Models for Out-of-Distribution Detection},
