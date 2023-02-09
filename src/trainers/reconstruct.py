@@ -1,4 +1,5 @@
 # import matplotlib.pyplot as plt
+
 import os
 import sys
 import time
@@ -35,6 +36,7 @@ class Reconstruct(BaseTrainer):
         self.beta_schedule = args.beta_schedule
         self.beta_start = args.beta_start
         self.beta_end = args.beta_end
+
         # set up loaders
         self.val_loader = get_training_data_loader(
             batch_size=args.batch_size,
@@ -72,6 +74,7 @@ class Reconstruct(BaseTrainer):
             print(f"{dist.get_rank()}: {dataset_name}")
         else:
             print(f"{dataset_name}")
+
         results = []
         pl = PerceptualLoss(
             dimensions=2,
@@ -209,11 +212,13 @@ class Reconstruct(BaseTrainer):
     def reconstruct(self, args):
         if bool(args.run_val):
             results_list = self.get_scores(self.val_loader, "val", args.inference_skip_factor)
+
             results_df = pd.DataFrame(results_list)
             results_df.to_csv(self.out_dir / "results_val.csv")
 
         if bool(args.run_in):
             results_list = self.get_scores(self.in_loader, "in", args.inference_skip_factor)
+
             results_df = pd.DataFrame(results_list)
             results_df.to_csv(self.out_dir / "results_in.csv")
 
@@ -255,6 +260,7 @@ class Reconstruct(BaseTrainer):
                         add_hflip=True,
                     )
                     dataset_name = Path(out).stem.split("_")[0] + "_hflip"
+
                 else:
                     out_loader = get_training_data_loader(
                         batch_size=args.batch_size,

@@ -13,6 +13,7 @@ from torch.nn.parallel import DistributedDataParallel
 
 class BaseTrainer:
     def __init__(self, args):
+
         # initialise DDP if run was launched with torchrun
         if "LOCAL_RANK" in os.environ:
             print("Setting up DDP.")

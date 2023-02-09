@@ -40,6 +40,7 @@ def parse_args():
         default=2e-2,
         help="Beta end.",
     )
+
     # training param
     parser.add_argument("--batch_size", type=int, default=512, help="Training batch size.")
     parser.add_argument("--n_epochs", type=int, default=300, help="Number of epochs to train.")
