@@ -62,18 +62,23 @@ class BaseTrainer:
         else:
             raise ValueError(f"Do not recognise model type {args.model_type}")
         print(f"{sum(p.numel() for p in self.model.parameters()):,} model parameters")
+        # set up noise scheduler parameters
+        self.prediction_type = args.prediction_type
+        self.beta_schedule = args.beta_schedule
+        self.beta_start = args.beta_start
+        self.beta_end = args.beta_end
+        self.b_scale = args.b_scale
         self.scheduler = DDPMScheduler(
             num_train_timesteps=1000,
-            prediction_type=args.prediction_type,
-            beta_schedule=args.beta_schedule,
-            beta_start=args.beta_start,
-            beta_end=args.beta_end,
+            prediction_type=self.prediction_type,
+            beta_schedule=self.beta_schedule,
+            beta_start=self.beta_start,
+            beta_end=self.beta_end,
         )
         self.inferer = DiffusionInferer(self.scheduler)
-
         self.scaler = GradScaler()
 
-        # set up optmizer, loss, checkpoints
+        # set up optimizer, loss, checkpoints
         self.run_dir = Path(args.output_dir) / args.model_name
         checkpoint_path = self.run_dir / "checkpoint.pth"
         if checkpoint_path.exists():

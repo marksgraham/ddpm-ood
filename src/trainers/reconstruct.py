@@ -32,10 +32,6 @@ class Reconstruct(BaseTrainer):
         # set up dirs
         self.out_dir = self.run_dir / "ood"
         self.out_dir.mkdir(exist_ok=True)
-        self.prediction_type = args.prediction_type
-        self.beta_schedule = args.beta_schedule
-        self.beta_start = args.beta_start
-        self.beta_end = args.beta_end
 
         # set up loaders
         self.val_loader = get_training_data_loader(
@@ -112,7 +108,9 @@ class Reconstruct(BaseTrainer):
                         start_timesteps = torch.Tensor([t_start] * images.shape[0]).long()
 
                         reconstructions = pndm_scheduler.add_noise(
-                            original_samples=images, noise=noise, timesteps=start_timesteps
+                            original_samples=images * self.b_scale,
+                            noise=noise,
+                            timesteps=start_timesteps,
                         )
                         # perform reconstruction
                         for step in pndm_timesteps[pndm_timesteps <= t_start]:
@@ -125,6 +123,7 @@ class Reconstruct(BaseTrainer):
                                 model_output, step, reconstructions
                             )
                     # try clamping the reconstructions
+                    reconstructions = reconstructions / self.b_scale
                     reconstructions.clamp_(0, 1)
                     # compute similarity
                     if images.shape[3] == 28:

@@ -41,6 +41,13 @@ def parse_args():
         default=2e-2,
         help="Beta end.",
     )
+    parser.add_argument(
+        "--b_scale",
+        type=float,
+        default=1,
+        help="Scale the data by a factor b before noising.",
+    )
+
     # inference param
     parser.add_argument("--batch_size", type=int, default=256, help="Batch size.")
     parser.add_argument(

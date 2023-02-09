@@ -86,8 +86,9 @@ class Trainer(BaseTrainer):
                 ).long()
 
                 noisy_image = self.scheduler.add_noise(
-                    original_samples=images, noise=noise, timesteps=timesteps
+                    original_samples=images * self.b_scale, noise=noise, timesteps=timesteps
                 )
+
                 noise_prediction = self.model(x=noisy_image, timesteps=timesteps)
                 loss = F.mse_loss(noise_prediction.float(), noise.float())
             self.scaler.scale(loss).backward()
@@ -137,7 +138,7 @@ class Trainer(BaseTrainer):
                         device=images.device,
                     ).long()
                     noisy_image = self.scheduler.add_noise(
-                        original_samples=images, noise=noise, timesteps=timesteps
+                        original_samples=images * self.b_scale, noise=noise, timesteps=timesteps
                     )
                     noise_prediction = self.model(x=noisy_image, timesteps=timesteps)
                     loss = F.mse_loss(noise_prediction.float(), noise.float())

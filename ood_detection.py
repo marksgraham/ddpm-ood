@@ -61,9 +61,9 @@ def main(args):
         steps_for_this_t = pndm_timesteps[pndm_timesteps <= t]
         total_steps += len(steps_for_this_t)
     # plot_target = 'perceptual_difference'
-    plot_target = "mse"
+    # plot_target = "mse"
     plot_target = "mse+perceptual"
-    plot_target = "ssim"
+    # plot_target = "ssim"
     print(
         f"SETTING MAX_T to {MAX_T} and T_SKIP to {T_SKIP_FACTOR} with a total of"
         f" {len(t_values)} starting points {total_steps} model evaluations"
