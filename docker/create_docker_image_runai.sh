@@ -10,7 +10,10 @@ TAG=ddpm-ood
 git clone git@github.com:Project-MONAI/GenerativeModels.git
 
 cp ../requirements.txt .
-docker build --tag "${USER}:${TAG}" . \
+docker build --network=host --tag "aicregistry:5000/${USER}:${TAG}" . \
   --build-arg USER_ID=$(id -u) \
   --build-arg GROUP_ID=$(id -g) \
   --build-arg USER=${USER}
+
+#push
+docker push "aicregistry:5000/${USER}:${TAG}"

@@ -3,11 +3,10 @@ import warnings
 from pathlib import Path
 
 import pandas as pd
+from generative.networks.schedulers import PNDMScheduler
 from monai.config import print_config
 from monai.utils import set_determinism
 from sklearn.metrics import roc_auc_score
-
-from src.models.sampling_utils import make_ddim_timesteps
 
 warnings.filterwarnings("ignore")
 
@@ -41,26 +40,30 @@ def main(args):
     run_dir = Path(args.output_dir) / model
     print(f"Run directory: {str(run_dir)}")
 
-    out_dir = run_dir / "ood_reconstructv6_fullrun"
+    out_dir = run_dir / "ood"
     out_dir.mkdir(exist_ok=True)
     results_df_val = pd.read_csv(out_dir / "results_val.csv")
     all_t_values = results_df_val["t"].unique()
-    T_SKIP_FACTOR = args.t_skip
     MAX_T = args.max_t
+    T_SKIP_FACTOR = 1
     t_values = all_t_values[::T_SKIP_FACTOR]
     t_values = t_values[(t_values < MAX_T)]
+
+    # t_values = t_values[(t_values < 500)]
+    # t_values = t_values[(t_values > 20)]
     # calculator total number of evaluation steps for this set-up
     total_steps = 0
-    full_timesteps = make_ddim_timesteps(
-        num_ddim_timesteps=100, num_ddpm_timesteps=1000, ddim_discr_method="uniform"
-    )
+    pndm_scheduler = PNDMScheduler(num_train_timesteps=1000, skip_prk_steps=True)
+    pndm_scheduler.set_timesteps(100)
+    pndm_timesteps = pndm_scheduler.timesteps
 
     for t in t_values:
-        steps_for_this_t = full_timesteps[full_timesteps <= t]
+        steps_for_this_t = pndm_timesteps[pndm_timesteps <= t]
         total_steps += len(steps_for_this_t)
     # plot_target = 'perceptual_difference'
-    # plot_target = 'mse'
+    plot_target = "mse"
     plot_target = "mse+perceptual"
+    plot_target = "ssim"
     print(
         f"SETTING MAX_T to {MAX_T} and T_SKIP to {T_SKIP_FACTOR} with a total of"
         f" {len(t_values)} starting points {total_steps} model evaluations"
@@ -100,7 +103,7 @@ def main(args):
         results_df_out = results_df_out[results_df_out["t"].isin(t_values)]
         results_df = pd.concat((results_df_in, results_df_out))
         # get z-scores for each plot_target using the val-set
-        for target in ["perceptual_difference", "mse"]:
+        for target in ["perceptual_difference", "mse", "ssim"]:
             # compute mean and std for each t value on the va
             results_df_val_agg = (
                 results_df_val.groupby(["t"])
@@ -126,6 +129,23 @@ def main(args):
             target = f"z_score_{plot_target}"
         results_df_mean = results_df.groupby(["filename", "type"]).mean().reset_index()
 
+        # do some plotting
+        import matplotlib.pyplot as plt
+
+        plt.figure()
+        colors = {"in": "b", "out": "r"}
+        for type in ["in", "out"]:
+            plot_df = results_df.loc[results_df["type"] == type]
+            unique_ids = plot_df["filename"].unique()
+
+            for id in unique_ids[:50]:
+                plt.plot(
+                    plot_df.loc[plot_df["filename"] == id]["t"],
+                    plot_df.loc[plot_df["filename"] == id][f"z_score_{plot_target}"],
+                    color=colors[type],
+                    alpha=0.3,
+                )
+        plt.show()
         # calculate ROC scores
         # in-distribution scores/class
         all_scores = results_df_mean.loc[results_df_mean["type"] == "in"][[target]].values.tolist()
