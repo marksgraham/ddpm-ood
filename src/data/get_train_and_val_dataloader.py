@@ -76,10 +76,7 @@ def get_training_data_loader(
     else:
         train_transforms = val_transforms
 
-    val_dicts = get_data_dicts(
-        validation_ids,
-        shuffle=False,
-    )
+    val_dicts = get_data_dicts(validation_ids, shuffle=False, first_n=first_n)
     if first_n:
         val_dicts = val_dicts[:first_n]
 
