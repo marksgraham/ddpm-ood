@@ -28,7 +28,8 @@ def shuffle(x):
 class Reconstruct(BaseTrainer):
     def __init__(self, args):
         super().__init__(args)
-
+        if not self.found_checkpoint:
+            raise FileNotFoundError("Failed to find a saved model checkpoint.")
         # set up dirs
         self.out_dir = self.run_dir / "ood"
         self.out_dir.mkdir(exist_ok=True)

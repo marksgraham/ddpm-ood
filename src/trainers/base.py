@@ -83,6 +83,7 @@ class BaseTrainer:
         checkpoint_path = self.run_dir / "checkpoint.pth"
         if checkpoint_path.exists():
             checkpoint = torch.load(checkpoint_path)
+            self.found_checkpoint = True
             self.start_epoch = checkpoint["epoch"] + 1
             self.global_step = checkpoint["global_step"]
             self.model.load_state_dict(checkpoint["model_state_dict"])
@@ -94,6 +95,7 @@ class BaseTrainer:
             self.start_epoch = 0
             self.best_loss = 1000
             self.global_step = 0
+            self.found_checkpoint = False
 
         self.optimizer = torch.optim.Adam(params=self.model.parameters(), lr=2.5e-5)
         if checkpoint_path.exists():
