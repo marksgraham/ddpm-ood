@@ -1,0 +1,33 @@
+#!/bin/bash
+num_gpus=2
+runai submit \
+  --name fashionmnist \
+  --image aicregistry:5000/mark:ddpm-ood \
+  --backoff-limit 0 \
+  --gpu ${num_gpus} \
+  --cpu 12 \
+  --large-shm \
+  --host-ipc \
+  --project mark \
+  --run-as-user \
+  --volume /nfs/home/mark/projects/ddpm-ood/ddpm-ood/:/project/ \
+  --volume /nfs/home/mark/projects/ddpm-ood/data:/data/ \
+  --volume /nfs/home/mark/projects/ddpm-ood/output/:/output/ \
+  --environment data_root=/data \
+  --environment output_root=/output \
+  --command -- torchrun --nproc_per_node=${num_gpus} --nnodes=1 --node_rank=0 /project/train.py \
+  --output_dir=/output/ \
+  --model_name=monaigen_fashionmnist_bscale \
+  --training_ids=/data/data_splits/FashionMNIST_train.csv \
+  --validation_ids=/data/data_splits/FashionMNIST_val.csv \
+  --is_grayscale=1 \
+  --n_epochs=300 \
+  --batch_size=200 \
+  --eval_freq=1 \
+  --cache_data=1 \
+  --prediction_type=epsilon \
+  --model_type=small \
+  --beta_schedule=scaled_linear \
+  --beta_start=0.0015 \
+  --beta_end=0.0195 \
+  --b_scale=1.4

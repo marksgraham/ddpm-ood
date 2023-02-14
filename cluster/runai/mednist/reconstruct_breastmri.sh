@@ -1,0 +1,37 @@
+#!/bin/bash
+num_gpu=4
+runai submit \
+  --name breastmri-recon \
+  --image aicregistry:5000/mark:ddpm-ood \
+  --backoff-limit 0 \
+  --gpu ${num_gpu} \
+  --cpu 12 \
+  --large-shm \
+  --host-ipc \
+  --project mark \
+  --run-as-user \
+  --volume /nfs/home/mark/projects/ddpm-ood/ddpm-ood/:/project/ \
+  --volume /nfs/home/mark/projects/ddpm-ood/data:/data/ \
+  --volume /nfs/home/mark/projects/ddpm-ood/output/:/output/ \
+  --environment data_root=/data \
+  --environment output_root=/output \
+  --command -- torchrun --nproc_per_node=${num_gpu} --nnodes=1 --node_rank=0 /project/reconstruct.py \ --output_dir=/output/ \
+  --model_name=mednist_breastmri \
+  --validation_ids=/data/data_splits/BreastMRI_val.csv \
+  --in_ids=/data/data_splits/BreastMRI_test.csv \
+  --out_ids=/data/data_splits/AbdomenCT_test.csv,/data/data_splits/ChestCT_test.csv,/data/data_splits/CXR_test.csv,/data/data_splits/Hand_test.csv,/data/data_splits/HeadCT_test.csv \
+  --is_grayscale=1 \
+  --num_inference_steps=100 \
+  --inference_skip_factor=2 \
+  --run_val=0 \
+  --run_in=0 \
+  --run_out=1 \
+  --batch_size=256 \
+  --first_n_val=1024 \
+  --first_n=1024 \
+  --prediction_type=epsilon \
+  --model_type=small \
+  --beta_schedule=scaled_linear \
+  --beta_start=0.0015 \
+  --beta_end=0.0195 \
+  --b_scale=1.0

@@ -60,9 +60,9 @@ def main(args):
     for t in t_values:
         steps_for_this_t = pndm_timesteps[pndm_timesteps <= t]
         total_steps += len(steps_for_this_t)
-    # plot_target = 'perceptual_difference'
+    plot_target = "perceptual_difference"
     # plot_target = "mse"
-    plot_target = "mse+perceptual"
+    # plot_target = "mse+perceptual"
     # plot_target = "ssim"
     print(
         f"SETTING MAX_T to {MAX_T} and T_SKIP to {T_SKIP_FACTOR} with a total of"
@@ -80,6 +80,7 @@ def main(args):
             index=["filename"], columns=["t"], values=[plot_target]
         )
 
+    mednist_datasets = set(["AbdomenCT", "BreastMRI", "CXR", "ChestCT", "Hand", "HeadCT"])
     if "fashionmnist" in model:
         out_data = ("MNIST", "FashionMNIST_vflip", "FashionMNIST_hflip")
     elif "mnist" in model:
@@ -90,6 +91,24 @@ def main(args):
         out_data = ("CIFAR10", "SVHN", "CelebA_vflip", "CelebA_hflip")
     elif "svhn" in model:
         out_data = ("CIFAR10", "CelebA", "SVHN_vflip", "SVHN_hflip")
+    elif "abdomenct" in model:
+        out_data = mednist_datasets
+        out_data.remove("AbdomenCT")
+    elif "breastmri" in model:
+        out_data = mednist_datasets
+        out_data.remove("BreastMRI")
+    elif "cxr" in model:
+        out_data = mednist_datasets
+        out_data.remove("CXR")
+    elif "chestct" in model:
+        out_data = mednist_datasets
+        out_data.remove("ChestCT")
+    elif "hand" in model:
+        out_data = mednist_datasets
+        out_data.remove("Hand")
+    elif "headct" in model:
+        out_data = mednist_datasets
+        out_data.remove("HeadCT")
     else:
         raise ValueError(f"Unknown dataset to select for run_dir {model}")
 
