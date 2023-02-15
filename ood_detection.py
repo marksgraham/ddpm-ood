@@ -43,6 +43,8 @@ def main(args):
     out_dir = run_dir / "ood"
     out_dir.mkdir(exist_ok=True)
     results_df_val = pd.read_csv(out_dir / "results_val.csv")
+    # using the dataloader with DDP can cause an image to have multiple sets or results - fix this
+    results_df_val.drop_duplicates(subset=["filename", "t"], keep="first", inplace=True)
     all_t_values = results_df_val["t"].unique()
     MAX_T = args.max_t
     T_SKIP_FACTOR = 1
@@ -60,9 +62,9 @@ def main(args):
     for t in t_values:
         steps_for_this_t = pndm_timesteps[pndm_timesteps <= t]
         total_steps += len(steps_for_this_t)
-    plot_target = "perceptual_difference"
+    # plot_target = "perceptual_difference"
     # plot_target = "mse"
-    # plot_target = "mse+perceptual"
+    plot_target = "mse+perceptual"
     # plot_target = "ssim"
     print(
         f"SETTING MAX_T to {MAX_T} and T_SKIP to {T_SKIP_FACTOR} with a total of"
@@ -80,7 +82,7 @@ def main(args):
             index=["filename"], columns=["t"], values=[plot_target]
         )
 
-    mednist_datasets = set(["AbdomenCT", "BreastMRI", "CXR", "ChestCT", "Hand", "HeadCT"])
+    mednist_datasets = dict.fromkeys(["AbdomenCT", "BreastMRI", "ChestCT", "CXR", "Hand", "HeadCT"])
     if "fashionmnist" in model:
         out_data = ("MNIST", "FashionMNIST_vflip", "FashionMNIST_hflip")
     elif "mnist" in model:
@@ -93,22 +95,22 @@ def main(args):
         out_data = ("CIFAR10", "CelebA", "SVHN_vflip", "SVHN_hflip")
     elif "abdomenct" in model:
         out_data = mednist_datasets
-        out_data.remove("AbdomenCT")
+        del out_data["AbdomenCT"]
     elif "breastmri" in model:
         out_data = mednist_datasets
-        out_data.remove("BreastMRI")
+        del out_data["BreastMRI"]
     elif "cxr" in model:
         out_data = mednist_datasets
-        out_data.remove("CXR")
+        del out_data["CXR"]
     elif "chestct" in model:
         out_data = mednist_datasets
-        out_data.remove("ChestCT")
+        del out_data["ChestCT"]
     elif "hand" in model:
         out_data = mednist_datasets
-        out_data.remove("Hand")
+        del out_data["Hand"]
     elif "headct" in model:
         out_data = mednist_datasets
-        out_data.remove("HeadCT")
+        del out_data["HeadCT"]
     else:
         raise ValueError(f"Unknown dataset to select for run_dir {model}")
 
@@ -118,6 +120,9 @@ def main(args):
     for out_dataset in out_data:
         results_df_in = pd.read_csv(out_dir / "results_in.csv")
         results_df_out = pd.read_csv(out_dir / f"results_{out_dataset}.csv")
+        # using the dataloader with DDP can cause an image to have multiple sets or results - fix this
+        results_df_in.drop_duplicates(subset=["filename", "t"], keep="first", inplace=True)
+        results_df_out.drop_duplicates(subset=["filename", "t"], keep="first", inplace=True)
         results_df_in = results_df_in[results_df_in["t"].isin(t_values)]
         results_df_out = results_df_out[results_df_out["t"].isin(t_values)]
         results_df = pd.concat((results_df_in, results_df_out))
