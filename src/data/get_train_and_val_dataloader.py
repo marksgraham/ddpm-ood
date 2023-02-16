@@ -47,12 +47,16 @@ def get_training_data_loader(
     is_grayscale=False,
     add_vflip=False,
     add_hflip=False,
+    image_size=None,
 ):
     # Define transformations
     val_transforms = transforms.Compose(
         [
             transforms.LoadImaged(keys=["image"]),
             transforms.EnsureChannelFirstd(keys=["image"]) if is_grayscale else lambda x: x,
+            transforms.ResizeD(keys=["image"], spatial_size=(image_size, image_size))
+            if image_size
+            else lambda x: x,
             transforms.ScaleIntensityd(keys=["image"], minv=0.0, maxv=1.0),
             transforms.RandFlipD(keys=["image"], spatial_axis=0, prob=1.0)
             if add_vflip
@@ -68,8 +72,11 @@ def get_training_data_loader(
         train_transforms = transforms.Compose(
             [
                 transforms.LoadImaged(keys=["image"]),
-                transforms.ScaleIntensityd(keys=["image"], minv=0.0, maxv=1.0),
                 transforms.EnsureChannelFirstd(keys=["image"]) if is_grayscale else lambda x: x,
+                transforms.ResizeD(keys=["image"], spatial_size=(image_size, image_size))
+                if image_size
+                else lambda x: x,
+                transforms.ScaleIntensityd(keys=["image"], minv=0.0, maxv=1.0),
                 transforms.ToTensord(keys=["image"]),
             ]
         )

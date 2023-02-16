@@ -6,7 +6,7 @@ ngc batch run --name "Job-kcl-cbg1-ace-936696" --priority HIGH --preempt RUNONCE
 --node_rank=0 \
 /mount/ddpm-ood/train.py  \
 --output_dir=/mount/output/  \
---model_name=mednist_abdomenct  \
+--model_name=mednist_abdomenct_128  \
 --training_ids=/mount/data/data_splits/AbdomenCT_train.csv  \
 --validation_ids=/mount/data/data_splits/AbdomenCT_val.csv  \
 --is_grayscale=1  \
@@ -19,7 +19,8 @@ ngc batch run --name "Job-kcl-cbg1-ace-936696" --priority HIGH --preempt RUNONCE
 --beta_schedule=scaled_linear \
 --beta_start=0.0015 \
 --beta_end=0.0195 \
---b_scale=1.0" \
+--b_scale=1.0 \
+--image_size=128" \
 --result /mandatory_results \
 --image "r5nte7msx1tj/amigo/ddp-ood:v0.1.0" \
 --org r5nte7msx1tj --team amigo \

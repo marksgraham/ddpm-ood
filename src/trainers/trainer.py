@@ -30,6 +30,7 @@ class Trainer(BaseTrainer):
             num_workers=args.num_workers,
             cache_data=bool(args.cache_data),
             is_grayscale=bool(args.is_grayscale),
+            image_size=self.image_size,
         )
 
     def train(self, args):
@@ -155,13 +156,20 @@ class Trainer(BaseTrainer):
                 )
 
         # get some samples
-        noise = torch.randn((8, images.shape[1], images.shape[2], images.shape[3])).to(self.device)
-        samples = self.inferer.sample(
-            input_noise=noise, diffusion_model=self.model, scheduler=self.scheduler, verbose=False
+        if self.image_size >= 128:
+            num_samples = 4
+            fig, ax = plt.subplots(2, 2)
+        else:
+            num_samples = 8
+            fig, ax = plt.subplots(2, 4)
+        noise = torch.randn((num_samples, images.shape[1], images.shape[2], images.shape[3])).to(
+            self.device
         )
-        fig, ax = plt.subplots(2, 4)
-        for i in range(8):
-            plt.subplot(2, 4, i + 1)
-            plt.imshow(np.transpose(samples[i, ...].cpu().numpy(), (1, 2, 0)), cmap="gray")
+        samples = self.inferer.sample(
+            input_noise=noise, diffusion_model=self.model, scheduler=self.scheduler, verbose=True
+        )
+
+        for i in range(len(ax.flat)):
+            ax.flat[i].imshow(np.transpose(samples[i, ...].cpu().numpy(), (1, 2, 0)), cmap="gray")
             plt.axis("off")
         self.logger_val.add_figure(tag="samples", figure=fig, global_step=self.global_step)

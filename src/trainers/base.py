@@ -77,6 +77,7 @@ class BaseTrainer:
         )
         self.inferer = DiffusionInferer(self.scheduler)
         self.scaler = GradScaler()
+        self.image_size = int(args.image_size) if args.image_size else args.image_size
 
         # set up optimizer, loss, checkpoints
         self.run_dir = Path(args.output_dir) / args.model_name

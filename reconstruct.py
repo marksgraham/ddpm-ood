@@ -12,6 +12,7 @@ def parse_args():
     parser.add_argument("--validation_ids", help="Location of file with validation ids.")
     parser.add_argument("--in_ids", help="Location of file with inlier ids.")
     parser.add_argument("--out_ids", help="List of location of file with outlier ids.")
+    parser.add_argument("--image_size", default=None, help="Resize images.")
 
     # model params
     parser.add_argument(

@@ -1,8 +1,9 @@
-num_gpus = 4
-# datasets = ['AbdomenCT', 'BreastMRI', 'ChestCT', 'CXR', 'Hand', 'HeadCT']
-datasets = ["AbdomenCT", "ChestCT", "CXR", "Hand", "HeadCT"]
+num_gpus = 8
+datasets = ["AbdomenCT", "BreastMRI", "ChestCT", "CXR", "Hand", "HeadCT"]
+
 for data in datasets:
-    model = f"mednist_{data.lower()}"
+    model = f"mednist_{data.lower()}_128"
+    image_size = 128
     in_ids = f"/mount/data/data_splits/{data}_val.csv"
     val_ids = f"/mount/data/data_splits/{data}_test.csv"
     out_datasets = set(datasets)
@@ -39,6 +40,7 @@ for data in datasets:
                 --beta_schedule=scaled_linear \
                 --beta_start=0.0015 \
                 --beta_end=0.0195 \
-                --b_scale=1.0" '
+                --b_scale=1.0 \
+                --image_size={image_size}"'
     print(run_script)
     print("debug")
