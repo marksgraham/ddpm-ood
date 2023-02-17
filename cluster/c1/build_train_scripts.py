@@ -34,4 +34,4 @@ for data in datasets:
                 --b_scale=1.0 \
                 --image_size=128" '
     print(run_script)
-    print("debug")
+    print("\ndebug")

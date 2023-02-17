@@ -204,4 +204,8 @@ def main(args):
 
 if __name__ == "__main__":
     args = parse_args()
-    main(args)
+    # loop over all models specified
+    for model in args.model_name.split(","):
+        args_copy = args
+        args_copy.model_name = model
+        main(args_copy)

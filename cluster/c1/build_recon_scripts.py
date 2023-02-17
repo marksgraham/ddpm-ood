@@ -1,4 +1,4 @@
-num_gpus = 8
+num_gpus = 4
 datasets = ["AbdomenCT", "BreastMRI", "ChestCT", "CXR", "Hand", "HeadCT"]
 
 for data in datasets:
@@ -43,4 +43,4 @@ for data in datasets:
                 --b_scale=1.0 \
                 --image_size={image_size}"'
     print(run_script)
-    print("debug")
+    print("\ndebug")
