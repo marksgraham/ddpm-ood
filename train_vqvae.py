@@ -1,6 +1,7 @@
 import argparse
+import ast
 
-from src.trainers.trainer import Trainer
+from src.trainers.vqvae import VQVAETrainer
 
 
 def parse_args():
@@ -11,45 +12,34 @@ def parse_args():
     parser.add_argument("--model_name", help="Name of model.")
     parser.add_argument("--training_ids", help="Location of file with training ids.")
     parser.add_argument("--validation_ids", help="Location of file with validation ids.")
+    parser.add_argument(
+        "--spatial_dimension", default=3, type=int, help="Dimension of images: 2d or 3d."
+    )
     parser.add_argument("--image_size", default=None, help="Resize images.")
 
     # model params
+    parser.add_argument("--vqvae_in_channels", default=1, type=int)
+    parser.add_argument("--vqvae_out_channels", default=1, type=int)
+    parser.add_argument("--vqvae_num_res_layers", default=3, type=int)
     parser.add_argument(
-        "--prediction_type",
-        default="epsilon",
-        help="Scheduler prediction type to use: 'epsilon, sample, or v_prediction.",
+        "--vqvae_downsample_parameters",
+        default=((2, 4, 1, 1), (2, 4, 1, 1), (2, 4, 1, 1), (2, 4, 1, 1)),
+        type=ast.literal_eval,
     )
     parser.add_argument(
-        "--model_type",
-        default="small",
-        help="Small or big model.",
+        "--vqvae_upsample_parameters",
+        default=((2, 4, 1, 1, 0), (2, 4, 1, 1, 0), (2, 4, 1, 1, 0), (2, 4, 1, 1, 0)),
+        type=ast.literal_eval,
     )
+    parser.add_argument("--vqvae_num_channels", default=[128, 128, 128, 256], type=ast.literal_eval)
     parser.add_argument(
-        "--beta_schedule",
-        default="linear",
-        help="Linear or scaled linear",
+        "--vqvae_num_res_channels", default=[128, 128, 128, 256], type=ast.literal_eval
     )
-    parser.add_argument(
-        "--beta_start",
-        type=float,
-        default=1e-4,
-        help="Beta start.",
-    )
-    parser.add_argument(
-        "--beta_end",
-        type=float,
-        default=2e-2,
-        help="Beta end.",
-    )
-    parser.add_argument(
-        "--b_scale",
-        type=float,
-        default=1,
-        help="Scale the data by a factor b before noising.",
-    )
+    parser.add_argument("--vqvae_num_embeddings", default=256, type=int)
+    parser.add_argument("--vqvae_embedding_dim", default=256, type=int)
 
     # training param
-    parser.add_argument("--batch_size", type=int, default=512, help="Training batch size.")
+    parser.add_argument("--batch_size", type=int, default=4, help="Training batch size.")
     parser.add_argument("--n_epochs", type=int, default=300, help="Number of epochs to train.")
     parser.add_argument(
         "--eval_freq",
@@ -88,8 +78,8 @@ def parse_args():
     return args
 
 
-# to run using DDP, run torchrun --nproc_per_node=1 --nnodes=1 --node_rank=0  train.py --args
+# to run using DDP, run torchrun --nproc_per_node=1 --nnodes=1 --node_rank=0  train_ddpm.py --args
 if __name__ == "__main__":
     args = parse_args()
-    trainer = Trainer(args)
+    trainer = VQVAETrainer(args)
     trainer.train(args)
