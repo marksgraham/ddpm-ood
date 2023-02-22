@@ -1,3 +1,4 @@
+import json
 import os
 import sys
 from pathlib import Path
@@ -5,10 +6,12 @@ from pathlib import Path
 import torch
 import torch.distributed as dist
 from generative.inferers import DiffusionInferer
-from generative.networks.nets import DiffusionModelUNet
+from generative.networks.nets import VQVAE, DiffusionModelUNet
 from generative.networks.schedulers import DDPMScheduler
 from torch.cuda.amp import GradScaler
 from torch.nn.parallel import DistributedDataParallel
+
+from src.networks import PassthroughVQVAE
 
 
 class BaseTrainer:
@@ -37,11 +40,32 @@ class BaseTrainer:
             print(f"  {k}: {v}")
 
         # set up model
+        if args.vqvae_checkpoint:
+            vqvae_checkpoint_path = Path(args.vqvae_checkpoint)
+            vqvae_config_path = vqvae_checkpoint_path.parent / "vqvae_config.json"
+            if not vqvae_checkpoint_path.exists():
+                raise FileNotFoundError(f"Cannot find VQ-VAE checkpoint {vqvae_checkpoint_path}")
+            if not vqvae_config_path.exists():
+                raise FileNotFoundError(f"Cannot find VQ-VAE config {vqvae_config_path}")
+            with open(vqvae_config_path, "r") as f:
+                self.vqvae_config = json.load(f)
+            self.vqvae_model = VQVAE(**self.vqvae_config)
+            vqvae_checkpoint = torch.load(vqvae_checkpoint_path)
+            self.vqvae_model.load_state_dict(vqvae_checkpoint["model_state_dict"])
+            self.vqvae_model.to(self.device)
+            self.vqvae_model.eval()
+            print("Loaded vqvae model with config:")
+            for k, v in self.vqvae_config.items():
+                print(f"  {k}: {v}")
+            ddpm_channels = self.vqvae_config["embedding_dim"]
+        else:
+            self.vqvae_model = PassthroughVQVAE()
+            ddpm_channels = 1 if args.is_grayscale else 3
         if args.model_type == "small":
             self.model = DiffusionModelUNet(
-                spatial_dims=2,
-                in_channels=1 if args.is_grayscale else 3,
-                out_channels=1 if args.is_grayscale else 3,
+                spatial_dims=args.spatial_dimension,
+                in_channels=ddpm_channels,
+                out_channels=ddpm_channels,
                 num_channels=(128, 256, 256),
                 attention_levels=(False, False, True),
                 num_res_blocks=1,
@@ -50,9 +74,9 @@ class BaseTrainer:
             ).to(self.device)
         elif args.model_type == "big":
             self.model = DiffusionModelUNet(
-                spatial_dims=2,
-                in_channels=1 if args.is_grayscale else 3,
-                out_channels=1 if args.is_grayscale else 3,
+                spatial_dims=args.spatial_dimension,
+                in_channels=ddpm_channels,
+                out_channels=ddpm_channels,
                 num_channels=(256, 512, 768),
                 attention_levels=(True, True, True),
                 num_res_blocks=2,
@@ -77,6 +101,7 @@ class BaseTrainer:
         )
         self.inferer = DiffusionInferer(self.scheduler)
         self.scaler = GradScaler()
+        self.spatial_dimension = args.spatial_dimension
         self.image_size = int(args.image_size) if args.image_size else args.image_size
 
         # set up optimizer, loss, checkpoints
