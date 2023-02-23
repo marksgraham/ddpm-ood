@@ -3,7 +3,7 @@
 ### CIFAR10
 
 ```bash
-python train.py \
+python train_ddpm.py \
 --output_dir=${output_root} \
 --model_name=cifar10 \
 --training_ids=${data_root}/data_splits/CIFAR10_train.csv \
@@ -38,7 +38,7 @@ python ood_detection.py \
 ### CelebA
 
 ```bash
-python train.py \
+python train_ddpm.py \
 --output_dir=${output_root} \
 --model_name=celeba \
 --training_ids=${data_root}/data_splits/CelebA_train.csv \
@@ -72,7 +72,7 @@ python ood_detection.py \
 ### SVHN
 
 ```bash
-python train.py \
+python train_ddpm.py \
 --output_dir=${output_root} \
 --model_name=svhn \
 --training_ids=${data_root}/data_splits/SVHN_train.csv \

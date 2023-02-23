@@ -49,7 +49,7 @@ Examples here use FashionMNIST as the in-distribution dataset. Commands for othe
 in [README_additional.md](README_additional.md).
 
 ```bash
-python train.py \
+python train_ddpm.py \
 --output_dir=${output_root} \
 --model_name=fashionmnist \
 --training_ids=${data_root}/data_splits/FashionMNIST_train.csv \

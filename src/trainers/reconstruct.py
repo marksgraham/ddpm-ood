@@ -103,7 +103,8 @@ class Reconstruct(BaseTrainer):
         with torch.no_grad():
             for batch in loader:
                 t1 = time.time()
-                images = batch["image"].to(self.device)
+                images_original = batch["image"].to(self.device)
+                images = self.vqvae_model.encode_stage_2_inputs(images_original)
                 # loop over different values to reconstruct from
                 for t_start in pndm_start_points:
                     with autocast(enabled=True):
@@ -126,6 +127,7 @@ class Reconstruct(BaseTrainer):
                                 model_output, step, reconstructions
                             )
                     # try clamping the reconstructions
+                    reconstructions = self.vqvae_model.decode_stage_2_outputs(reconstructions)
                     reconstructions = reconstructions / self.b_scale
                     reconstructions.clamp_(0, 1)
                     # compute similarity

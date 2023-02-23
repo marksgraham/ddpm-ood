@@ -30,6 +30,7 @@ class Trainer(BaseTrainer):
             num_workers=args.num_workers,
             cache_data=bool(args.cache_data),
             is_grayscale=bool(args.is_grayscale),
+            spatial_dimension=args.spatial_dimension,
             image_size=self.image_size,
         )
 
@@ -73,7 +74,7 @@ class Trainer(BaseTrainer):
         epoch_step = 0
         self.model.train()
         for step, batch in progress_bar:
-            images = batch["image"].to(self.device)
+            images = self.vqvae_model.encode_stage_2_inputs(batch["image"].to(self.device))
             self.optimizer.zero_grad(set_to_none=True)
             with autocast(enabled=True):
                 # noise images
@@ -112,64 +113,83 @@ class Trainer(BaseTrainer):
         epoch_loss = epoch_loss / epoch_step
         return epoch_loss
 
+    @torch.no_grad()
     def val_epoch(self, epoch):
-        with torch.no_grad():
-            progress_bar = tqdm(
-                enumerate(self.val_loader),
-                total=len(self.val_loader),
-                ncols=70,
-                position=0,
-                leave=True,
-                desc="Validation",
-            )
-            epoch_loss = 0
-            global_val_step = self.global_step
-            val_steps = 0
-            for step, batch in progress_bar:
-                images = batch["image"].to(self.device)
-                self.optimizer.zero_grad(set_to_none=True)
-                with autocast(enabled=True):
-                    # noise images + segs
-                    noise = torch.randn_like(images).to(self.device)
+        progress_bar = tqdm(
+            enumerate(self.val_loader),
+            total=len(self.val_loader),
+            ncols=70,
+            position=0,
+            leave=True,
+            desc="Validation",
+        )
+        epoch_loss = 0
+        global_val_step = self.global_step
+        val_steps = 0
+        for step, batch in progress_bar:
+            images = self.vqvae_model.encode_stage_2_inputs(batch["image"].to(self.device))
+            self.optimizer.zero_grad(set_to_none=True)
+            with autocast(enabled=True):
+                # noise images + segs
+                noise = torch.randn_like(images).to(self.device)
 
-                    timesteps = torch.randint(
-                        0,
-                        self.inferer.scheduler.num_train_timesteps,
-                        (images.shape[0],),
-                        device=images.device,
-                    ).long()
-                    noisy_image = self.scheduler.add_noise(
-                        original_samples=images * self.b_scale, noise=noise, timesteps=timesteps
-                    )
-                    noise_prediction = self.model(x=noisy_image, timesteps=timesteps)
-                    loss = F.mse_loss(noise_prediction.float(), noise.float())
-                self.logger_val.add_scalar(
-                    tag="loss", scalar_value=loss.item(), global_step=global_val_step
+                timesteps = torch.randint(
+                    0,
+                    self.inferer.scheduler.num_train_timesteps,
+                    (images.shape[0],),
+                    device=images.device,
+                ).long()
+                noisy_image = self.scheduler.add_noise(
+                    original_samples=images * self.b_scale, noise=noise, timesteps=timesteps
                 )
-                epoch_loss += loss.item()
-                val_steps += images.shape[0]
-                global_val_step += images.shape[0]
-                progress_bar.set_postfix(
-                    {
-                        "loss": epoch_loss / val_steps,
-                    }
-                )
+                noise_prediction = self.model(x=noisy_image, timesteps=timesteps)
+                loss = F.mse_loss(noise_prediction.float(), noise.float())
+            self.logger_val.add_scalar(
+                tag="loss", scalar_value=loss.item(), global_step=global_val_step
+            )
+            epoch_loss += loss.item()
+            val_steps += images.shape[0]
+            global_val_step += images.shape[0]
+            progress_bar.set_postfix(
+                {
+                    "loss": epoch_loss / val_steps,
+                }
+            )
 
         # get some samples
-        if self.image_size >= 128:
-            num_samples = 4
-            fig, ax = plt.subplots(2, 2)
-        else:
-            num_samples = 8
-            fig, ax = plt.subplots(2, 4)
-        noise = torch.randn((num_samples, images.shape[1], images.shape[2], images.shape[3])).to(
-            self.device
+        image_size = images.shape[2]
+        if self.spatial_dimension == 2:
+            if image_size >= 128:
+                num_samples = 4
+                fig, ax = plt.subplots(2, 2)
+            else:
+                num_samples = 8
+                fig, ax = plt.subplots(2, 4)
+        elif self.spatial_dimension == 3:
+            num_samples = 2
+            fig, ax = plt.subplots(2, 3)
+        noise = torch.randn((num_samples, *tuple(images.shape[1:]))).to(self.device)
+        samples = self.vqvae_model.decode_stage_2_outputs(
+            self.inferer.sample(
+                input_noise=noise,
+                diffusion_model=self.model,
+                scheduler=self.scheduler,
+                verbose=True,
+            )
         )
-        samples = self.inferer.sample(
-            input_noise=noise, diffusion_model=self.model, scheduler=self.scheduler, verbose=True
-        )
-
-        for i in range(len(ax.flat)):
-            ax.flat[i].imshow(np.transpose(samples[i, ...].cpu().numpy(), (1, 2, 0)), cmap="gray")
-            plt.axis("off")
+        if self.spatial_dimension == 2:
+            for i in range(len(ax.flat)):
+                ax.flat[i].imshow(
+                    np.transpose(samples[i, ...].cpu().numpy(), (1, 2, 0)), cmap="gray"
+                )
+                plt.axis("off")
+        elif self.spatial_dimension == 3:
+            slice_ratios = [0.25, 0.5, 0.75]
+            slices = [int(ratio * samples.shape[4]) for ratio in slice_ratios]
+            for i in range(num_samples):
+                for j in range(len(slices)):
+                    ax[i][j].imshow(
+                        np.transpose(samples[i, :, :, :, slices[j]].cpu().numpy(), (1, 2, 0)),
+                        cmap="gray",
+                    )
         self.logger_val.add_figure(tag="samples", figure=fig, global_step=self.global_step)
