@@ -8,7 +8,7 @@ for data in datasets:
     run_script = f'ngc batch run --name "Job-kcl-cbg1-ace-936696" --priority HIGH --preempt RUNONCE --min-timeslice 259200s --total-runtime 259200s --ace kcl-cbg1-ace \
                 --instance dgxa100.80g.{num_gpus}.norm \
                 --result /mandatory_results \
-                --image "r5nte7msx1tj/amigo/ddp-ood:v0.1.0" \
+                --image "r5nte7msx1tj/amigo/ddp-ood:v0.1.1" \
                 --org r5nte7msx1tj --team amigo \
                 --workspace UizB_55BRVKYwFtCVUHmbg:/mount:RW \
                 --order 50 \

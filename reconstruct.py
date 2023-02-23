@@ -12,9 +12,17 @@ def parse_args():
     parser.add_argument("--validation_ids", help="Location of file with validation ids.")
     parser.add_argument("--in_ids", help="Location of file with inlier ids.")
     parser.add_argument("--out_ids", help="List of location of file with outlier ids.")
+    parser.add_argument(
+        "--spatial_dimension", default=2, type=int, help="Dimension of images: 2d or 3d."
+    )
     parser.add_argument("--image_size", default=None, help="Resize images.")
 
     # model params
+    parser.add_argument(
+        "--vqvae_checkpoint",
+        default=None,
+        help="Path to a VQ-VAE model checkpoint, if you wish to reconstruct an LDM.",
+    )
     parser.add_argument(
         "--prediction_type",
         default="epsilon",

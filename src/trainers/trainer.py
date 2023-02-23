@@ -157,8 +157,9 @@ class Trainer(BaseTrainer):
             )
 
         # get some samples
+        image_size = images.shape[2]
         if self.spatial_dimension == 2:
-            if self.image_size >= 128:
+            if image_size >= 128:
                 num_samples = 4
                 fig, ax = plt.subplots(2, 2)
             else:
