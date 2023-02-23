@@ -4,7 +4,7 @@
 #
 # $ create_docker_image.sh
 set -ex
-TAG=nvcr.io/r5nte7msx1tj/amigo/ddp-ood:v0.1.0
+TAG=nvcr.io/r5nte7msx1tj/amigo/ddp-ood:v0.1.1
 
 # get monai generative
 git clone git@github.com:Project-MONAI/GenerativeModels.git
