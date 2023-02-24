@@ -86,6 +86,11 @@ def parse_args():
         default=100,
         help="Save a checkpoint every checkpoint_every epochs.",
     )
+    parser.add_argument(
+        "--ddpm_checkpoint_epoch",
+        default=None,
+        help="If resuming, the epoch number for a specific checkpoint to resume from. If not specified, defaults to the best checkpoint.",
+    )
     parser.add_argument("--is_grayscale", type=int, default=0, help="Is data grayscale.")
     parser.add_argument(
         "--quick_test",

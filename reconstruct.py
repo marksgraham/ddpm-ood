@@ -24,6 +24,11 @@ def parse_args():
         help="Path to a VQ-VAE model checkpoint, if you wish to reconstruct an LDM.",
     )
     parser.add_argument(
+        "--ddpm_checkpoint_epoch",
+        default=None,
+        help="The epoch number for a specific checkpoint to reconstruct from. If not specified, defaults to the best  checkpoint.",
+    )
+    parser.add_argument(
         "--prediction_type",
         default="epsilon",
         help="Scheduler prediction type to use: 'epsilon, sample, or v_prediction.",

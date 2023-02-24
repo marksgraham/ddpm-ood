@@ -58,6 +58,7 @@ class VQVAETrainer:
             "num_res_channels": args.vqvae_num_res_channels,
             "num_embeddings": args.vqvae_num_embeddings,
             "embedding_dim": args.vqvae_embedding_dim,
+            "decay": args.vqvae_decay,
         }
         self.model = VQVAE(**vqvae_args)
         self.model.to(self.device)
@@ -81,7 +82,7 @@ class VQVAETrainer:
         self.perceptual_loss.to(self.device)
         self.jukebox_loss = JukeboxLoss(spatial_dims=3)
         self.jukebox_loss.to(self.device)
-        self.optimizer_g = torch.optim.Adam(params=self.model.parameters(), lr=1e-4)
+        self.optimizer_g = torch.optim.Adam(params=self.model.parameters(), lr=3e-4)
         self.optimizer_d = torch.optim.Adam(params=self.discriminator.parameters(), lr=5e-4)
 
         self.l1_loss = L1Loss()

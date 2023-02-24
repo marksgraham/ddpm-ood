@@ -37,6 +37,7 @@ def parse_args():
     )
     parser.add_argument("--vqvae_num_embeddings", default=256, type=int)
     parser.add_argument("--vqvae_embedding_dim", default=256, type=int)
+    parser.add_argument("--vqvae_decay", default=0.99, type=float)
 
     # training param
     parser.add_argument("--batch_size", type=int, default=4, help="Training batch size.")

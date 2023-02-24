@@ -106,7 +106,12 @@ class BaseTrainer:
 
         # set up optimizer, loss, checkpoints
         self.run_dir = Path(args.output_dir) / args.model_name
-        checkpoint_path = self.run_dir / "checkpoint.pth"
+        # can choose to resume/reconstruct from a specific checkpoint
+        if args.ddpm_checkpoint_epoch:
+            checkpoint_path = self.run_dir / f"checkpoint_{int(args.ddpm_checkpoint_epoch)}.pth"
+        # otherwise select the best checkpoint
+        else:
+            checkpoint_path = self.run_dir / "checkpoint.pth"
         if checkpoint_path.exists():
             checkpoint = torch.load(checkpoint_path)
             self.found_checkpoint = True
