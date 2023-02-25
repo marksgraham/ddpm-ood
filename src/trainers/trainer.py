@@ -76,6 +76,9 @@ class Trainer(BaseTrainer):
         self.model.train()
         for step, batch in progress_bar:
             images = self.vqvae_model.encode_stage_2_inputs(batch["image"].to(self.device))
+            if self.do_latent_pad:
+                with torch.no_grad():
+                    images = F.pad(input=images, pad=self.latent_pad, mode="constant", value=0)
             self.optimizer.zero_grad(set_to_none=True)
             with autocast(enabled=True):
                 # noise images
@@ -129,6 +132,8 @@ class Trainer(BaseTrainer):
         val_steps = 0
         for step, batch in progress_bar:
             images = self.vqvae_model.encode_stage_2_inputs(batch["image"].to(self.device))
+            if self.do_latent_pad:
+                images = F.pad(input=images, pad=self.latent_pad, mode="constant", value=0)
             self.optimizer.zero_grad(set_to_none=True)
             with autocast(enabled=True):
                 # noise images + segs
@@ -170,14 +175,17 @@ class Trainer(BaseTrainer):
             num_samples = 2
             fig, ax = plt.subplots(2, 3)
         noise = torch.randn((num_samples, *tuple(images.shape[1:]))).to(self.device)
-        samples = self.vqvae_model.decode_stage_2_outputs(
-            self.inferer.sample(
-                input_noise=noise,
-                diffusion_model=self.model,
-                scheduler=self.scheduler,
-                verbose=True,
-            )
+        latent_samples = self.inferer.sample(
+            input_noise=noise,
+            diffusion_model=self.model,
+            scheduler=self.scheduler,
+            verbose=True,
         )
+        if self.do_latent_pad:
+            latent_samples = F.pad(
+                input=latent_samples, pad=self.inverse_latent_pad, mode="constant", value=0
+            )
+        samples = self.vqvae_model.decode_stage_2_outputs(latent_samples)
         if self.spatial_dimension == 2:
             for i in range(len(ax.flat)):
                 ax.flat[i].imshow(

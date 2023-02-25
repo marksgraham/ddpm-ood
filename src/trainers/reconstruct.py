@@ -9,6 +9,7 @@ import numpy as np
 import pandas as pd
 import torch
 import torch.distributed as dist
+import torch.nn.functional as F
 from generative.metrics import MSSSIM
 from generative.networks.schedulers import PNDMScheduler
 from skimage.metrics import structural_similarity as ssim
@@ -107,6 +108,8 @@ class Reconstruct(BaseTrainer):
                 t1 = time.time()
                 images_original = batch["image"].to(self.device)
                 images = self.vqvae_model.encode_stage_2_inputs(images_original)
+                if self.do_latent_pad:
+                    images = F.pad(input=images, pad=self.latent_pad, mode="constant", value=0)
                 # loop over different values to reconstruct from
                 for t_start in pndm_start_points:
                     with autocast(enabled=True):
@@ -129,6 +132,13 @@ class Reconstruct(BaseTrainer):
                                 model_output, step, reconstructions
                             )
                     # try clamping the reconstructions
+                    if self.do_latent_pad:
+                        reconstructions = F.pad(
+                            input=reconstructions,
+                            pad=self.inverse_latent_pad,
+                            mode="constant",
+                            value=0,
+                        )
                     reconstructions = self.vqvae_model.decode_stage_2_outputs(reconstructions)
                     reconstructions = reconstructions / self.b_scale
                     reconstructions.clamp_(0, 1)

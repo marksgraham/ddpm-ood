@@ -103,6 +103,12 @@ class BaseTrainer:
         self.scaler = GradScaler()
         self.spatial_dimension = args.spatial_dimension
         self.image_size = int(args.image_size) if args.image_size else args.image_size
+        if args.latent_pad:
+            self.do_latent_pad = True
+            self.latent_pad = args.latent_pad
+            self.inverse_latent_pad = [-x for x in self.latent_pad]
+        else:
+            self.do_latent_pad = False
 
         # set up optimizer, loss, checkpoints
         self.run_dir = Path(args.output_dir) / args.model_name
