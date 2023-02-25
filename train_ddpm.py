@@ -1,4 +1,5 @@
 import argparse
+import ast
 
 from src.trainers.trainer import Trainer
 
@@ -15,6 +16,12 @@ def parse_args():
         "--spatial_dimension", default=2, type=int, help="Dimension of images: 2d or 3d."
     )
     parser.add_argument("--image_size", default=None, help="Resize images.")
+    parser.add_argument(
+        "--image_roi",
+        default=None,
+        help="Specify central ROI crop of inputs, as a tuple, with -1 to not crop a dimension.",
+        type=ast.literal_eval,
+    )
 
     # model params
     parser.add_argument(

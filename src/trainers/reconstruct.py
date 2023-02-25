@@ -48,6 +48,7 @@ class Reconstruct(BaseTrainer):
             first_n=int(args.first_n_val) if args.first_n_val else args.first_n_val,
             is_grayscale=bool(args.is_grayscale),
             image_size=self.image_size,
+            image_roi=args.image_roi,
         )
 
         self.in_loader = get_training_data_loader(
@@ -63,6 +64,7 @@ class Reconstruct(BaseTrainer):
             first_n=int(args.first_n) if args.first_n else args.first_n,
             is_grayscale=bool(args.is_grayscale),
             image_size=self.image_size,
+            image_roi=args.image_roi,
         )
 
     def get_scores(self, loader, dataset_name, inference_skip_factor):
@@ -245,6 +247,7 @@ class Reconstruct(BaseTrainer):
                         is_grayscale=bool(args.is_grayscale),
                         image_size=self.image_size,
                         add_vflip=True,
+                        image_roi=args.image_roi,
                     )
                     dataset_name = Path(out).stem.split("_")[0] + "_vflip"
 
@@ -264,6 +267,7 @@ class Reconstruct(BaseTrainer):
                         is_grayscale=bool(args.is_grayscale),
                         image_size=self.image_size,
                         add_hflip=True,
+                        image_roi=args.image_roi,
                     )
                     dataset_name = Path(out).stem.split("_")[0] + "_hflip"
 
@@ -281,6 +285,7 @@ class Reconstruct(BaseTrainer):
                         first_n=int(args.first_n) if args.first_n else args.first_n,
                         is_grayscale=bool(args.is_grayscale),
                         image_size=self.image_size,
+                        image_roi=args.image_roi,
                     )
                     dataset_name = Path(out).stem.split("_")[0]
                 results_list = self.get_scores(out_loader, "out", args.inference_skip_factor)

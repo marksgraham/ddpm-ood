@@ -48,21 +48,21 @@ def get_training_data_loader(
     add_vflip=False,
     add_hflip=False,
     image_size=None,
+    image_roi=None,
     spatial_dimension=2,
 ):
     # Define transformations
-    if spatial_dimension == 2:
-        resize_transform = (
-            transforms.ResizeD(keys=["image"], spatial_size=(image_size, image_size))
-            if image_size
-            else lambda x: x
-        )
-    elif spatial_dimension == 3:
-        resize_transform = (
-            transforms.ResizeD(keys=["image"], spatial_size=(image_size, image_size, image_size))
-            if image_size
-            else lambda x: x
-        )
+    resize_transform = (
+        transforms.ResizeD(keys=["image"], spatial_size=(image_size,) * spatial_dimension)
+        if image_size
+        else lambda x: x
+    )
+
+    central_crop_transform = (
+        transforms.CenterSpatialCropD(keys=["image"], roi_size=image_roi)
+        if image_roi
+        else lambda x: x
+    )
 
     val_transforms = transforms.Compose(
         [
@@ -71,6 +71,7 @@ def get_training_data_loader(
             transforms.Lambdad(keys="image", func=lambda x: x[0, None, ...])
             if is_grayscale
             else lambda x: x,  # needed for BRATs data with 4 modalities in 1
+            central_crop_transform,
             resize_transform,
             transforms.ScaleIntensityd(keys=["image"], minv=0.0, maxv=1.0),
             transforms.RandFlipD(keys=["image"], spatial_axis=0, prob=1.0)

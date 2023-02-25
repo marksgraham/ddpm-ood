@@ -145,6 +145,7 @@ class VQVAETrainer:
             is_grayscale=bool(args.is_grayscale),
             spatial_dimension=args.spatial_dimension,
             image_size=int(args.image_size) if args.image_size else args.image_size,
+            image_roi=args.image_roi,
         )
 
     def save_checkpoint(self, path, epoch, save_message=None):

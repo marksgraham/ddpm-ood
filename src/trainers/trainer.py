@@ -32,6 +32,7 @@ class Trainer(BaseTrainer):
             is_grayscale=bool(args.is_grayscale),
             spatial_dimension=args.spatial_dimension,
             image_size=self.image_size,
+            image_roi=args.image_roi,
         )
 
     def train(self, args):
