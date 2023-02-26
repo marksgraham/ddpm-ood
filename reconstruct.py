@@ -23,7 +23,13 @@ def parse_args():
         help="Specify central ROI crop of inputs, as a tuple, with -1 to not crop a dimension.",
         type=ast.literal_eval,
     )
-
+    parser.add_argument(
+        "--latent_pad",
+        default=None,
+        help="Specify padding to apply to a latent, sometimes necessary to allow the DDPM U-net to work. Supply as a "
+        "tuple following the 'pad' argument of torch.nn.functional.pad",
+        type=ast.literal_eval,
+    )
     # model params
     parser.add_argument(
         "--vqvae_checkpoint",
