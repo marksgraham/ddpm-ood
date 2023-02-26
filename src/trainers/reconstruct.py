@@ -15,7 +15,8 @@ from torch.cuda.amp import autocast
 from torch.nn.functional import pad
 
 from src.data.get_train_and_val_dataloader import get_training_data_loader
-from src.trainers.PerceptualLoss import PerceptualLoss
+from src.losses import PerceptualLoss
+from src.utils.simplex_noise import generate_simplex_noise
 
 from .base import BaseTrainer
 
@@ -112,8 +113,18 @@ class Reconstruct(BaseTrainer):
                 # loop over different values to reconstruct from
                 for t_start in pndm_start_points:
                     with autocast(enabled=True):
-                        noise = torch.randn_like(images).to(self.device)
                         start_timesteps = torch.Tensor([t_start] * images.shape[0]).long()
+
+                        # noise images
+                        if self.simplex_noise:
+                            noise = generate_simplex_noise(
+                                self.simplex,
+                                x=images,
+                                t=start_timesteps,
+                                in_channels=images.shape[1],
+                            )
+                        else:
+                            noise = torch.randn_like(images).to(self.device)
 
                         reconstructions = pndm_scheduler.add_noise(
                             original_samples=images * self.b_scale,

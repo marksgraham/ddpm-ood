@@ -12,6 +12,7 @@ from torch.cuda.amp import GradScaler
 from torch.nn.parallel import DistributedDataParallel
 
 from src.networks import PassthroughVQVAE
+from src.utils.simplex_noise import Simplex_CLASS
 
 
 class BaseTrainer:
@@ -99,6 +100,9 @@ class BaseTrainer:
             beta_start=self.beta_start,
             beta_end=self.beta_end,
         )
+        self.simplex_noise = bool(args.simplex_noise)
+        if self.simplex_noise:
+            self.simplex = Simplex_CLASS()
         self.inferer = DiffusionInferer(self.scheduler)
         self.scaler = GradScaler()
         self.spatial_dimension = args.spatial_dimension

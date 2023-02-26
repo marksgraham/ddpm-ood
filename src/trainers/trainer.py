@@ -8,6 +8,7 @@ from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
 
 from src.data.get_train_and_val_dataloader import get_training_data_loader
+from src.utils.simplex_noise import generate_simplex_noise
 
 from .base import BaseTrainer
 
@@ -81,15 +82,20 @@ class Trainer(BaseTrainer):
                     images = F.pad(input=images, pad=self.latent_pad, mode="constant", value=0)
             self.optimizer.zero_grad(set_to_none=True)
             with autocast(enabled=True):
-                # noise images
-                noise = torch.randn_like(images).to(self.device)
-
                 timesteps = torch.randint(
                     0,
                     self.inferer.scheduler.num_train_timesteps,
                     (images.shape[0],),
                     device=self.device,
                 ).long()
+
+                # noise images
+                if self.simplex_noise:
+                    noise = generate_simplex_noise(
+                        self.simplex, x=images, t=timesteps, in_channels=images.shape[1]
+                    )
+                else:
+                    noise = torch.randn_like(images).to(self.device)
 
                 noisy_image = self.scheduler.add_noise(
                     original_samples=images * self.b_scale, noise=noise, timesteps=timesteps
@@ -136,15 +142,21 @@ class Trainer(BaseTrainer):
                 images = F.pad(input=images, pad=self.latent_pad, mode="constant", value=0)
             self.optimizer.zero_grad(set_to_none=True)
             with autocast(enabled=True):
-                # noise images + segs
-                noise = torch.randn_like(images).to(self.device)
-
                 timesteps = torch.randint(
                     0,
                     self.inferer.scheduler.num_train_timesteps,
                     (images.shape[0],),
                     device=images.device,
                 ).long()
+
+                # noise images
+                if self.simplex_noise:
+                    noise = generate_simplex_noise(
+                        self.simplex, x=images, t=timesteps, in_channels=images.shape[1]
+                    )
+                else:
+                    noise = torch.randn_like(images).to(self.device)
+
                 noisy_image = self.scheduler.add_noise(
                     original_samples=images * self.b_scale, noise=noise, timesteps=timesteps
                 )

@@ -74,6 +74,12 @@ def parse_args():
         default=1,
         help="Scale the data by a factor b before noising.",
     )
+    parser.add_argument(
+        "--simplex_noise",
+        type=int,
+        default=0,
+        help="Use simplex instead of Gaussian noise.",
+    )
 
     # inference param
     parser.add_argument("--batch_size", type=int, default=256, help="Batch size.")

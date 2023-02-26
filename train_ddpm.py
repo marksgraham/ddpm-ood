@@ -69,7 +69,12 @@ def parse_args():
         default=1,
         help="Scale the data by a factor b before noising.",
     )
-
+    parser.add_argument(
+        "--simplex_noise",
+        type=int,
+        default=0,
+        help="Use simplex instead of Gaussian noise.",
+    )
     # training param
     parser.add_argument("--batch_size", type=int, default=512, help="Training batch size.")
     parser.add_argument("--n_epochs", type=int, default=300, help="Number of epochs to train.")
