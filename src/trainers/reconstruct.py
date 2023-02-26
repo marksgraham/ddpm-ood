@@ -90,19 +90,20 @@ class Reconstruct(BaseTrainer):
         # )
 
         self.model.eval()
-        pndm_scheduler = PNDMScheduler(
-            num_train_timesteps=1000,
-            skip_prk_steps=True,
-            prediction_type=self.prediction_type,
-            beta_schedule=self.beta_schedule,
-            beta_start=self.beta_start,
-            beta_end=self.beta_end,
-        )
-        pndm_scheduler.set_timesteps(100)
-        pndm_timesteps = pndm_scheduler.timesteps
-        pndm_start_points = reversed(pndm_timesteps)[1::inference_skip_factor]
         with torch.no_grad():
             for batch in loader:
+                pndm_scheduler = PNDMScheduler(
+                    num_train_timesteps=1000,
+                    skip_prk_steps=True,
+                    prediction_type=self.prediction_type,
+                    beta_schedule=self.beta_schedule,
+                    beta_start=self.beta_start,
+                    beta_end=self.beta_end,
+                )
+                pndm_scheduler.set_timesteps(100)
+                pndm_timesteps = pndm_scheduler.timesteps
+                pndm_start_points = reversed(pndm_timesteps)[1::inference_skip_factor]
+
                 t1 = time.time()
                 images_original = batch["image"].to(self.device)
                 images = self.vqvae_model.encode_stage_2_inputs(images_original)
