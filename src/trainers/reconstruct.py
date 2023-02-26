@@ -10,9 +10,7 @@ import pandas as pd
 import torch
 import torch.distributed as dist
 import torch.nn.functional as F
-from generative.metrics import MSSSIM
 from generative.networks.schedulers import PNDMScheduler
-from skimage.metrics import structural_similarity as ssim
 from torch.cuda.amp import autocast
 from torch.nn.functional import pad
 
@@ -79,17 +77,17 @@ class Reconstruct(BaseTrainer):
 
         results = []
         pl = PerceptualLoss(
-            dimensions=2,
+            dimensions=self.spatial_dimension,
             include_pixel_loss=False,
-            is_fake_3d=False,
+            is_fake_3d=True if self.spatial_dimension == 3 else False,
             lpips_normalize=True,
             spatial=False,
         ).to(self.device)
-        ms_ssim = MSSSIM(
-            data_range=torch.tensor(1.0).to(self.device),
-            spatial_dims=2,
-            weights=torch.Tensor([0.0448, 0.2856]).to(self.device),
-        )
+        # ms_ssim = MSSSIM(
+        #     data_range=torch.tensor(1.0).to(self.device),
+        #     spatial_dims=2,
+        #     weights=torch.Tensor([0.0448, 0.2856]).to(self.device),
+        # )
 
         self.model.eval()
         pndm_scheduler = PNDMScheduler(
@@ -143,46 +141,38 @@ class Reconstruct(BaseTrainer):
                     reconstructions = reconstructions / self.b_scale
                     reconstructions.clamp_(0, 1)
                     # compute similarity
-                    if images.shape[3] == 28:
-                        perceptual_difference = pl(
-                            pad(images, (2, 2, 2, 2)),
-                            pad(
-                                reconstructions,
-                                (2, 2, 2, 2),
-                            ),
-                        )
+                    if self.spatial_dimension == 2:
+                        if images_original.shape[3] == 28:
+                            perceptual_difference = pl(
+                                pad(images_original, (2, 2, 2, 2)),
+                                pad(
+                                    reconstructions,
+                                    (2, 2, 2, 2),
+                                ),
+                            )
+                        else:
+                            perceptual_difference = pl(images_original, reconstructions)
                     else:
-                        perceptual_difference = pl(images, reconstructions)
-
-                    mse_metric = torch.square(images - reconstructions).mean(axis=(1, 2, 3))
-                    all_ssim = []
-                    all_msssim = []
+                        # in 3D need to calculate perceptual difference for each batch item seperately for now
+                        perceptual_difference = torch.empty(images.shape[0])
+                        for b in range(images.shape[0]):
+                            perceptual_difference[b] = pl(
+                                images_original[b, None, ...], reconstructions[b, None, ...]
+                            )
+                    non_batch_dims = tuple(range(images_original.dim()))[1:]
+                    mse_metric = torch.square(images_original - reconstructions).mean(
+                        axis=non_batch_dims
+                    )
                     for b in range(images.shape[0]):
                         filename = batch["image_meta_dict"]["filename_or_obj"][b]
                         stem = Path(filename).stem.replace(".nii", "").replace(".gz", "")
-                        # ssim is done per-batch
-                        ssim_metric = 1 - ssim(
-                            images[b, ...].squeeze().cpu().numpy(),
-                            reconstructions[b, ...].squeeze().cpu().numpy(),
-                            channel_axis=0,
-                        )
-                        all_ssim.append(ssim_metric)
 
-                        msssim_metric = (
-                            1
-                            - ms_ssim._compute_metric(
-                                images[b, None, ...], reconstructions[b, None, ...]
-                            ).item()
-                        )
-                        all_msssim.append(msssim_metric)
                         results.append(
                             {
                                 "filename": stem,
                                 "type": dataset_name,
                                 "t": t_start.item(),
                                 "perceptual_difference": perceptual_difference[b].item(),
-                                "ssim": ssim_metric,
-                                "msssim": msssim_metric,
                                 "mse": mse_metric[b].item(),
                             }
                         )
@@ -190,14 +180,22 @@ class Reconstruct(BaseTrainer):
                     if not dist.is_initialized():
                         import matplotlib.pyplot as plt
 
-                        fig, ax = plt.subplots(8, 2, figsize=(2, 8))
-                        for i in range(8):
-                            plt.subplot(8, 2, i * 2 + 1)
-                            plt.imshow(shuffle(images[i, ...]), vmin=0, vmax=1, cmap="gray")
-                            plt.axis("off")
-                            plt.subplot(8, 2, i * 2 + 2)
+                        n_rows = min(images.shape[0], 8)
+                        fig, ax = plt.subplots(n_rows, 2, figsize=(2, n_rows))
+                        for i in range(n_rows):
+                            image_slice = (
+                                np.s_[i, :, :, images_original.shape[4] // 2]
+                                if self.spatial_dimension == 3
+                                else np.s_[i, :, :]
+                            )
+                            plt.subplot(n_rows, 2, i * 2 + 1)
                             plt.imshow(
-                                shuffle(reconstructions[i, ...]), vmin=0, vmax=1, cmap="gray"
+                                shuffle(images_original[image_slice]), vmin=0, vmax=1, cmap="gray"
+                            )
+                            plt.axis("off")
+                            plt.subplot(n_rows, 2, i * 2 + 2)
+                            plt.imshow(
+                                shuffle(reconstructions[image_slice]), vmin=0, vmax=1, cmap="gray"
                             )
                             # plt.title(f"{mse_metric[i].item():.3f}")
                             plt.title(f"{perceptual_difference[i].item():.3f}")

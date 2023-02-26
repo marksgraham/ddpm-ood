@@ -173,8 +173,8 @@ class PerceptualLoss(torch.nn.Module):
             : int(y_pred_slices.shape[0] * self.keep_ratio)
         ]
 
-        y_pred_slices = y_pred_slices[indices]
-        y_slices = y_slices[indices]
+        y_pred_slices = y_pred_slices.as_tensor()[indices]
+        y_slices = y_slices.as_tensor()[indices]
 
         # Calculating the 2.5D perceptual loss
         p_loss = torch.mean(
