@@ -161,3 +161,7 @@ cython_debug/
 
 .DS_Store
 .idea
+
+# files specific to my projects
+cluster/*
+papers/*
