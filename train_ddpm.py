@@ -1,7 +1,7 @@
 import argparse
 import ast
 
-from src.trainers.trainer import Trainer
+from src.trainers.ddpm_trainer import DDPMTrainer
 
 
 def parse_args():
@@ -123,5 +123,5 @@ def parse_args():
 # to run using DDP, run torchrun --nproc_per_node=1 --nnodes=1 --node_rank=0  train_ddpm.py --args
 if __name__ == "__main__":
     args = parse_args()
-    trainer = Trainer(args)
+    trainer = DDPMTrainer(args)
     trainer.train(args)

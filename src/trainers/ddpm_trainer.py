@@ -13,7 +13,7 @@ from src.utils.simplex_noise import generate_simplex_noise
 from .base import BaseTrainer
 
 
-class Trainer(BaseTrainer):
+class DDPMTrainer(BaseTrainer):
     def __init__(self, args):
         super().__init__(args)
 

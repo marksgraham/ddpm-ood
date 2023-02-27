@@ -1,7 +1,7 @@
 import argparse
 import ast
 
-from src.trainers.vqvae import VQVAETrainer
+from src.trainers.vqvae_trainer import VQVAETrainer
 
 
 def parse_args():
