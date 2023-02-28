@@ -2,6 +2,7 @@ import argparse
 import warnings
 from pathlib import Path
 
+import numpy as np
 import pandas as pd
 from generative.networks.schedulers import PNDMScheduler
 from monai.config import print_config
@@ -23,6 +24,12 @@ def parse_args():
         type=int,
         default=1000,
         help="Maximum T to consider reconstructions from.",
+    )
+    parser.add_argument(
+        "--min_t",
+        type=int,
+        default=1000,
+        help="Minimum T to consider reconstructions from.",
     )
     parser.add_argument("--t_skip", type=int, default=1, help="Only use every n reconstructions.")
 
@@ -47,9 +54,11 @@ def main(args):
     results_df_val.drop_duplicates(subset=["filename", "t"], keep="first", inplace=True)
     all_t_values = results_df_val["t"].unique()
     MAX_T = args.max_t
+    MIN_T = args.min_t
     T_SKIP_FACTOR = 1
     t_values = all_t_values[::T_SKIP_FACTOR]
     t_values = t_values[(t_values < MAX_T)]
+    t_values = t_values[(MIN_T < t_values)]
 
     # t_values = t_values[(t_values < 500)]
     # t_values = t_values[(t_values > 20)]
@@ -127,7 +136,7 @@ def main(args):
         results_df_out = results_df_out[results_df_out["t"].isin(t_values)]
         results_df = pd.concat((results_df_in, results_df_out))
         # get z-scores for each plot_target using the val-set
-        for target in ["perceptual_difference", "mse", "ssim"]:
+        for target in ["perceptual_difference", "mse"]:
             # compute mean and std for each t value on the va
             results_df_val_agg = (
                 results_df_val.groupby(["t"])
@@ -200,6 +209,7 @@ def main(args):
         scores = all_results_dict[model][method]
         for o, s in zip(ood_datasets, scores):
             print(f"AUC for {model} vs {o}: {s * 100:.1f}")
+        print(f"Average AUC: {np.mean(scores) * 100:.1f}")
 
 
 if __name__ == "__main__":
