@@ -60,7 +60,12 @@ def parse_args():
         default=1,
         help="Use of augmentation, 1 (True) or 0 (False).",
     )
-
+    parser.add_argument(
+        "--adversarial_warmup",
+        type=int,
+        default=0,
+        help="Warmup the learning rate of the adversarial component.",
+    )
     parser.add_argument("--num_workers", type=int, default=8, help="Number of loader workers")
     parser.add_argument(
         "--cache_data",

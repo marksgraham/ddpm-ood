@@ -89,7 +89,7 @@ class VQVAETrainer:
         self.adv_loss = PatchAdversarialLoss(criterion="least_squares")
         self.adv_weight = 0.01
         self.perceptual_weight = 0.001
-
+        self.adversarial_warmup = bool(args.adversarial_warmup)
         # set up optimizer, loss, checkpoints
         self.run_dir = Path(args.output_dir) / args.model_name
         checkpoint_path = self.run_dir / "checkpoint.pth"
@@ -226,12 +226,16 @@ class VQVAETrainer:
             adversarial_loss = self.adv_loss(
                 logits_fake, target_is_real=True, for_discriminator=False
             )
+            if self.adversarial_warmup:
+                adv_weight = self.adv_weight * min(epoch, 50) / 50
+            else:
+                adv_weight = self.adv_weight
             total_generator_loss = (
                 recons_loss
                 + quantization_loss
                 + self.perceptual_weight * perceptual_loss
                 + jukebox_loss
-                + self.adv_weight * adversarial_loss
+                + adv_weight * adversarial_loss
             )
 
             total_generator_loss.backward()
@@ -246,7 +250,7 @@ class VQVAETrainer:
             loss_d_real = self.adv_loss(logits_real, target_is_real=True, for_discriminator=True)
             discriminator_loss = (loss_d_fake + loss_d_real) * 0.5
 
-            loss_d = self.adv_weight * discriminator_loss
+            loss_d = adv_weight * discriminator_loss
 
             loss_d.backward()
             self.optimizer_d.step()
