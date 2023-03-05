@@ -4,6 +4,7 @@ import sys
 from pathlib import Path
 
 import matplotlib.pyplot as plt
+import numpy as np
 import torch
 import torch.distributed as dist
 from generative.losses.adversarial_loss import PatchAdversarialLoss
@@ -47,6 +48,7 @@ class VQVAETrainer:
             print(f"  {k}: {v}")
 
         # set up model
+        self.spatial_dimension = args.spatial_dimension
         vqvae_args = {
             "spatial_dims": args.spatial_dimension,
             "in_channels": args.vqvae_in_channels,
@@ -65,11 +67,11 @@ class VQVAETrainer:
         print(f"{sum(p.numel() for p in self.model.parameters()):,} model parameters")
 
         self.discriminator = PatchDiscriminator(
-            spatial_dims=3,
+            spatial_dims=args.spatial_dimension,
             num_layers_d=3,
             num_channels=64,
-            in_channels=1,
-            out_channels=1,
+            in_channels=args.vqvae_in_channels,
+            out_channels=args.vqvae_out_channels,
             kernel_size=4,
             activation=(Act.LEAKYRELU, {"negative_slope": 0.2}),
             norm="BATCH",
@@ -78,9 +80,11 @@ class VQVAETrainer:
         )
         self.discriminator.to(self.device)
 
-        self.perceptual_loss = PerceptualLoss(spatial_dims=3, network_type="alex", is_fake_3d=True)
+        self.perceptual_loss = PerceptualLoss(
+            spatial_dims=args.spatial_dimension, network_type="alex", is_fake_3d=True
+        )
         self.perceptual_loss.to(self.device)
-        self.jukebox_loss = JukeboxLoss(spatial_dims=3)
+        self.jukebox_loss = JukeboxLoss(spatial_dims=args.spatial_dimension)
         self.jukebox_loss.to(self.device)
         self.optimizer_g = torch.optim.Adam(params=self.model.parameters(), lr=3e-4)
         self.optimizer_d = torch.optim.Adam(params=self.discriminator.parameters(), lr=5e-4)
@@ -348,11 +352,15 @@ class VQVAETrainer:
                     fig = plt.figure()
                     for i in range(2):
                         plt.subplot(2, 2, i * 2 + 1)
-                        plt.imshow(images[i, 0, :, :, 80].cpu(), cmap="gray")
+                        if self.spatial_dimension == 2:
+                            sl = np.s_[i, 0, :, :]
+                        else:
+                            sl = np.s_[i, 0, :, :, images.shape[4] // 2]
+                        plt.imshow(images[sl].cpu(), cmap="gray")
                         if i == 0:
                             plt.title("Image")
                         plt.subplot(2, 2, i * 2 + 2)
-                        plt.imshow(reconstruction[i, 0, :, :, 80].cpu(), cmap="gray")
+                        plt.imshow(reconstruction[sl].cpu(), cmap="gray")
                         if i == 0:
                             plt.title("Recon")
                     plt.show()

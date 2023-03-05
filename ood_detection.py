@@ -60,8 +60,6 @@ def main(args):
     t_values = t_values[(t_values < MAX_T)]
     t_values = t_values[(MIN_T < t_values)]
 
-    # t_values = t_values[(t_values < 500)]
-    # t_values = t_values[(t_values > 20)]
     # calculator total number of evaluation steps for this set-up
     total_steps = 0
     pndm_scheduler = PNDMScheduler(num_train_timesteps=1000, skip_prk_steps=True)
@@ -72,8 +70,8 @@ def main(args):
         steps_for_this_t = pndm_timesteps[pndm_timesteps <= t]
         total_steps += len(steps_for_this_t)
     # plot_target = "perceptual_difference"
-    # plot_target = "mse"
-    plot_target = "mse+perceptual"
+    plot_target = "mse"
+    # plot_target = "mse+perceptual"
     # plot_target = "ssim"
     print(
         f"SETTING MAX_T to {MAX_T} and T_SKIP to {T_SKIP_FACTOR} with a total of"
