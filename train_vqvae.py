@@ -61,6 +61,12 @@ def parse_args():
         help="Use of augmentation, 1 (True) or 0 (False).",
     )
     parser.add_argument(
+        "--adversarial_weight",
+        type=float,
+        default=0.01,
+        help="Weight for adversarial component.",
+    )
+    parser.add_argument(
         "--adversarial_warmup",
         type=int,
         default=0,

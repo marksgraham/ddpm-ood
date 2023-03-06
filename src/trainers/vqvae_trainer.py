@@ -91,7 +91,7 @@ class VQVAETrainer:
 
         self.l1_loss = L1Loss()
         self.adv_loss = PatchAdversarialLoss(criterion="least_squares")
-        self.adv_weight = 0.01
+        self.adv_weight = args.adversarial_weight
         self.perceptual_weight = 0.001
         self.adversarial_warmup = bool(args.adversarial_warmup)
         # set up optimizer, loss, checkpoints
