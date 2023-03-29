@@ -1,4 +1,4 @@
-## Commands for running codebase on other datasets
+## Commands for running codebase on other datasets.
 
 ### CIFAR10
 
