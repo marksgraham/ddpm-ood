@@ -1,7 +1,7 @@
 import argparse
 import ast
 
-from src.trainers.reconstruct import Reconstruct
+from src.trainers import Reconstruct
 
 
 def parse_args():

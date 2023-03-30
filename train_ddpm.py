@@ -1,7 +1,7 @@
 import argparse
 import ast
 
-from src.trainers.ddpm_trainer import DDPMTrainer
+from src.trainers import DDPMTrainer
 
 
 def parse_args():
