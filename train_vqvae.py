@@ -48,6 +48,7 @@ def parse_args():
     parser.add_argument("--vqvae_epsilon", default=1e-5, type=float)
     parser.add_argument("--vqvae_dropout", default=0.0, type=float)
     parser.add_argument("--vqvae_ddp_sync", default=True, type=bool)
+    parser.add_argument("--vqvae_learning_rate", default=3e-4, type=float)
 
     # training param
     parser.add_argument("--batch_size", type=int, default=4, help="Training batch size.")

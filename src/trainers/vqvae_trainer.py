@@ -90,7 +90,9 @@ class VQVAETrainer:
         self.perceptual_loss.to(self.device)
         self.jukebox_loss = JukeboxLoss(spatial_dims=args.spatial_dimension)
         self.jukebox_loss.to(self.device)
-        self.optimizer_g = torch.optim.Adam(params=self.model.parameters(), lr=3e-4)
+        self.optimizer_g = torch.optim.Adam(
+            params=self.model.parameters(), lr=args.vqvae_learning_rate
+        )
         self.optimizer_d = torch.optim.Adam(params=self.discriminator.parameters(), lr=5e-4)
 
         self.l1_loss = L1Loss()
