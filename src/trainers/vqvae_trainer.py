@@ -61,6 +61,10 @@ class VQVAETrainer:
             "num_embeddings": args.vqvae_num_embeddings,
             "embedding_dim": args.vqvae_embedding_dim,
             "decay": args.vqvae_decay,
+            "commitment_cost": args.vqvae_commitment_cost,
+            "epsilon": args.vqvae_epsilon,
+            "dropout": args.vqvae_dropout,
+            "ddp_sync": args.vqvae_ddp_sync,
         }
         self.model = VQVAE(**vqvae_args)
         self.model.to(self.device)
