@@ -6,9 +6,5 @@ ARG USER
 RUN addgroup --gid $GROUP_ID $USER
 RUN adduser --disabled-password --gecos '' --uid $USER_ID --gid $GROUP_ID $USER
 
-COPY GenerativeModels /generative
-WORKDIR /generative
-RUN pip3 install .
-
 COPY requirements.txt .
 RUN pip3 install -r requirements.txt
