@@ -1,6 +1,6 @@
-<h1 align="center">Denoising Diffusion Models for Out-of-Distribution Detection</h1>
+<h1 align="center">Denoising diffusion models for out-of-distribution detection</h1>
 <p align="center">
-PyTorch code to reproduce results in <a href="https://arxiv.org/abs/2211.07740">Denoising Diffusion Models for Out-of-Distribution Detection</a>.
+Official PyTorch implementation of <a href="https://arxiv.org/abs/2211.07740">Denoising diffusion models for out-of-distribution detection</a>.
 
 </p>
 
@@ -10,13 +10,10 @@ PyTorch code to reproduce results in <a href="https://arxiv.org/abs/2211.07740">
 
 
 
-It is based on the excellent [Latent Diffusion repository](https://github.com/CompVis/latent-diffusion)
-(although the models in this work are vanilla diffusion models) - many thanks!
-
 ## Running the code
 
 ### Install
-Create a fresh virtualenv (this codebase was developed and tested with Python 3.6.9) and then install the required packages:
+Create a fresh virtualenv (this codebase was developed and tested with Python 3.8) and then install the required packages:
 
 ```pip install -r requirements.txt```
 
@@ -55,12 +52,31 @@ python train_ddpm.py \
 --training_ids=${data_root}/data_splits/FashionMNIST_train.csv \
 --validation_ids=${data_root}/data_splits/FashionMNIST_val.csv \
 --is_grayscale=1 \
---config_diffusion_file=src/configs/diffusion/diffusion_grayscale.yaml \
---n_epochs=300
+--n_epochs=300 \
+--beta_schedule=scaled_linear \
+--beta_start=0.0015 \
+--beta_end=0.0195
 ```
+
 You can track experiments in tensorboard
 ```bash
 tensorboard --logdir=${output_root}
+```
+
+The code is DistributedDataParallel (DDP) compatible. To train on e.g. 2 GPUs:
+
+```bash
+torchrun --nproc_per_node=2 --nnodes=1 --node_rank=0 \
+train_ddpm.py \
+--output_dir=${output_root} \
+--model_name=fashionmnist \
+--training_ids=${data_root}/data_splits/FashionMNIST_train.csv \
+--validation_ids=${data_root}/data_splits/FashionMNIST_val.csv \
+--is_grayscale=1 \
+--n_epochs=300 \
+--beta_schedule=scaled_linear \
+--beta_start=0.0015 \
+--beta_end=0.0195
 ```
 
 ### Reconstruct data
@@ -71,11 +87,13 @@ python reconstruct.py \
 --model_name=fashionmnist \
 --validation_ids=${data_root}/data_splits/FashionMNIST_val.csv \
 --in_ids=${data_root}/data_splits/FashionMNIST_test.csv \
---out_ids=${data_root}/data_splits/MNIST_test.csv,${data_root}/data_splits/MNIST_vflip_test.csv,${data_root}/data_splits/MNIST_hflip_test.csv \
+--out_ids=${data_root}/data_splits/MNIST_test.csv,${data_root}/data_splits/FashionMNIST_vflip_test.csv,${data_root}/data_splits/FashionMNIST_hflip_test.csv \
 --is_grayscale=1 \
---config_diffusion_file=src/configs/diffusion/diffusion_grayscale.yaml \
+--beta_schedule=scaled_linear \
+--beta_start=0.0015 \
+--beta_end=0.0195 \
 --num_inference_steps=100 \
---inference_skip_factor=16 \
+--inference_skip_factor=4 \
 --run_val=1 \
 --run_in=1 \
 --run_out=1
@@ -100,15 +118,14 @@ python ood_detection.py \
 ```
 
 ## Acknowledgements
-This repository is based on the excellent [Latent Diffusion repository](https://github.com/CompVis/latent-diffusion)
-(although the models in this work are vanilla diffusion models) - many thanks!
+Built on top of [MONAI Generative](https://github.com/Project-MONAI/GenerativeModels).
 
 
 ## Citation
 If you use this codebase, please cite
 ```bib
 @article{graham2022denoising,
-  title={Denoising Diffusion Models for Out-of-Distribution Detection},
+  title={Denoising diffusion models for out-of-distribution detection},
   author={Graham, Mark S and Pinaya, Walter HL and Tudosiu, Petru-Daniel
           and Nachev, Parashkev and Ourselin, Sebastien and Cardoso, M Jorge},
   journal={arXiv preprint arXiv:2211.07740},

@@ -28,7 +28,7 @@ def parse_args():
     parser.add_argument(
         "--min_t",
         type=int,
-        default=1000,
+        default=0,
         help="Minimum T to consider reconstructions from.",
     )
     parser.add_argument("--t_skip", type=int, default=1, help="Only use every n reconstructions.")
