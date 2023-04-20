@@ -1,11 +1,11 @@
 <h1 align="center">Denoising diffusion models for out-of-distribution detection</h1>
 <p align="center">
-Official PyTorch implementation of <a href="https://arxiv.org/abs/2211.07740">Denoising diffusion models for out-of-distribution detection</a>.
+Official PyTorch implementation of <a href="https://arxiv.org/abs/2211.07740">denoising diffusion models for out-of-distribution detection</a>.
 
 </p>
 
 <p align="center">
-  <img width="800" height="300" src="https://user-images.githubusercontent.com/7947315/202760559-5f053775-122b-47ba-a729-dc1d3485c660.svg">
+  <img width="800" height="300" src="https://user-images.githubusercontent.com/7947315/233470531-df6437d7-e277-4147-96a0-6aa354cf2ef4.svg">
 </p>
 
 
