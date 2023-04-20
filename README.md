@@ -1,13 +1,13 @@
 <h1 align="center">Denoising diffusion models for out-of-distribution detection</h1>
 <p align="center">
-Official PyTorch implementation of <a href="https://arxiv.org/abs/2211.07740">denoising diffusion models for out-of-distribution detection</a>.
-
+Perform reconstruction-based out-of-distribution detection with DDPMs.
 </p>
 
 <p align="center">
   <img width="800" height="300" src="https://user-images.githubusercontent.com/7947315/233470531-df6437d7-e277-4147-96a0-6aa354cf2ef4.svg">
 </p>
 
+Work accepted at the CVPR Workshop on Visual Anomaly and Novelty Detection, [paper here](https://arxiv.org/abs/2211.07740).
 
 
 ## Running the code
