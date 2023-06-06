@@ -7,7 +7,7 @@ Perform reconstruction-based out-of-distribution detection with DDPMs.
   <img width="800" height="300" src="https://user-images.githubusercontent.com/7947315/233470531-df6437d7-e277-4147-96a0-6aa354cf2ef4.svg">
 </p>
 
-Work accepted at the CVPR Workshop on Visual Anomaly and Novelty Detection, [paper here](https://arxiv.org/abs/2211.07740).
+This work was accepted at the CVPR Workshop: VAND 2023, [paper here](https://openaccess.thecvf.com/content/CVPR2023W/VAND/html/Graham_Denoising_Diffusion_Models_for_Out-of-Distribution_Detection_CVPRW_2023_paper.html).
 
 
 ## Running the code
@@ -118,16 +118,17 @@ python ood_detection.py \
 ```
 
 ## Acknowledgements
-Built on top of [MONAI Generative](https://github.com/Project-MONAI/GenerativeModels).
+Built with [MONAI Generative](https://github.com/Project-MONAI/GenerativeModels).
 
 
 ## Citation
 If you use this codebase, please cite
 ```bib
-@article{graham2022denoising,
-  title={Denoising diffusion models for out-of-distribution detection},
-  author={Graham, Mark S and Pinaya, Walter HL and Tudosiu, Petru-Daniel
-          and Nachev, Parashkev and Ourselin, Sebastien and Cardoso, M Jorge},
-  journal={arXiv preprint arXiv:2211.07740},
-  year={2022}
+@InProceedings{Graham_2023_CVPR,
+    author    = {Graham, Mark S. and Pinaya, Walter H.L. and Tudosiu, Petru-Daniel and Nachev, Parashkev and Ourselin, Sebastien and Cardoso, Jorge},
+    title     = {Denoising Diffusion Models for Out-of-Distribution Detection},
+    booktitle = {Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR) Workshops},
+    month     = {June},
+    year      = {2023},
+    pages     = {2947-2956}
 }
