@@ -18,6 +18,7 @@ def parse_args():
 def download_data(data_root):
     splits_dir = Path(data_root).parent / "data_splits"
     splits_dir.mkdir(exist_ok=True, parents=True)
+    Path(data_root).mkdir(exist_ok=True)
     for task in [
         "Task01_BrainTumour",
         "Task02_Heart",

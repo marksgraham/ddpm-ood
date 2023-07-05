@@ -118,6 +118,19 @@ def main(args):
     elif "headct" in model:
         out_data = mednist_datasets
         del out_data["HeadCT"]
+    elif "decathlon" in model or "Task01" in model:
+        out_data = (
+            "Task02",
+            "Task03",
+            "Task04",
+            "Task05",
+            "Task06",
+            "Task07",
+            "Task08",
+            "Task09",
+            "Task10",
+        )
+
     else:
         raise ValueError(f"Unknown dataset to select for run_dir {model}")
 

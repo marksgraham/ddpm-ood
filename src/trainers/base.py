@@ -97,7 +97,7 @@ class BaseTrainer:
         self.scheduler = DDPMScheduler(
             num_train_timesteps=1000,
             prediction_type=self.prediction_type,
-            beta_schedule=self.beta_schedule,
+            schedule=self.beta_schedule,
             beta_start=self.beta_start,
             beta_end=self.beta_end,
         )

@@ -47,6 +47,7 @@ class Reconstruct(BaseTrainer):
             drop_last=bool(args.drop_last),
             first_n=int(args.first_n_val) if args.first_n_val else args.first_n_val,
             is_grayscale=bool(args.is_grayscale),
+            spatial_dimension=args.spatial_dimension,
             image_size=self.image_size,
             image_roi=args.image_roi,
         )
@@ -63,6 +64,7 @@ class Reconstruct(BaseTrainer):
             drop_last=bool(args.drop_last),
             first_n=int(args.first_n) if args.first_n else args.first_n,
             is_grayscale=bool(args.is_grayscale),
+            spatial_dimension=args.spatial_dimension,
             image_size=self.image_size,
             image_roi=args.image_roi,
         )
@@ -97,7 +99,7 @@ class Reconstruct(BaseTrainer):
                     num_train_timesteps=1000,
                     skip_prk_steps=True,
                     prediction_type=self.prediction_type,
-                    beta_schedule=self.beta_schedule,
+                    schedule=self.beta_schedule,
                     beta_start=self.beta_start,
                     beta_end=self.beta_end,
                 )
@@ -277,6 +279,7 @@ class Reconstruct(BaseTrainer):
                         drop_last=bool(args.drop_last),
                         first_n=int(args.first_n) if args.first_n else args.first_n,
                         is_grayscale=bool(args.is_grayscale),
+                        spatial_dimension=args.spatial_dimension,
                         image_size=self.image_size,
                         add_vflip=True,
                         image_roi=args.image_roi,
@@ -297,6 +300,7 @@ class Reconstruct(BaseTrainer):
                         drop_last=bool(args.drop_last),
                         first_n=int(args.first_n) if args.first_n else args.first_n,
                         is_grayscale=bool(args.is_grayscale),
+                        spatial_dimension=args.spatial_dimension,
                         image_size=self.image_size,
                         add_hflip=True,
                         image_roi=args.image_roi,
@@ -316,6 +320,7 @@ class Reconstruct(BaseTrainer):
                         drop_last=bool(args.drop_last),
                         first_n=int(args.first_n) if args.first_n else args.first_n,
                         is_grayscale=bool(args.is_grayscale),
+                        spatial_dimension=args.spatial_dimension,
                         image_size=self.image_size,
                         image_roi=args.image_roi,
                     )

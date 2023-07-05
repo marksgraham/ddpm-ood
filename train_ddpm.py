@@ -47,8 +47,8 @@ def parse_args():
     )
     parser.add_argument(
         "--beta_schedule",
-        default="linear",
-        help="Linear or scaled linear",
+        default="linear_beta",
+        help="Linear_beta or scaled_linear_beta.",
     )
     parser.add_argument(
         "--beta_start",
