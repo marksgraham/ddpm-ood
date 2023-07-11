@@ -16,7 +16,7 @@ It is based on work published in [1] and [2].
 
 [1] [Denoising diffusion models for out-of-distribution detection, CVPR VAND Workshop 2023](https://arxiv.org/abs/2211.07740)
 
-[2] [Unsupervised 3D out-of-distribution detection with latent diffusion models, MICCAI 2023]()
+[2] [Unsupervised 3D out-of-distribution detection with latent diffusion models, MICCAI 2023](https://arxiv.org/abs/2307.03777)
 
 ## Setup
 
