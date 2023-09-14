@@ -2,7 +2,7 @@ lpips==0.1.4
 matplotlib
 torch==1.13.1
 monai[nibabel]
-git+https://github.com/Project-MONAI/GenerativeModels
+monai-generative
 pandas
 scipy
 tensorboard
