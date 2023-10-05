@@ -235,9 +235,13 @@ If you use this codebase, please cite
     year      = {2023},
     pages     = {2947-2956}
 }
-@article{graham2023unsupervised,
+@inproceedings{graham2023unsupervised,
   title={Unsupervised 3D out-of-distribution detection with latent diffusion models},
   author={Graham, Mark S and Pinaya, Walter Hugo Lopez and Wright, Paul and Tudosiu, Petru-Daniel and Mah, Yee H and Teo, James T and J{\"a}ger, H Rolf and Werring, David and Nachev, Parashkev and Ourselin, Sebastien and others},
-  journal={arXiv preprint arXiv:2307.03777},
-  year={2023}
+  booktitle={International Conference on Medical Image Computing and Computer-Assisted Intervention},
+  pages={446--456},
+  year={2023},
+  organization={Springer}
 }
+}
+```
