@@ -66,7 +66,7 @@ python train_ddpm.py \
 --validation_ids=${data_root}/data_splits/FashionMNIST_val.csv \
 --is_grayscale=1 \
 --n_epochs=300 \
---beta_schedule=scaled_linear \
+--beta_schedule=scaled_linear_beta \
 --beta_start=0.0015 \
 --beta_end=0.0195
 ```
@@ -87,7 +87,7 @@ train_ddpm.py \
 --validation_ids=${data_root}/data_splits/FashionMNIST_val.csv \
 --is_grayscale=1 \
 --n_epochs=300 \
---beta_schedule=scaled_linear \
+--beta_schedule=scaled_linear_beta \
 --beta_start=0.0015 \
 --beta_end=0.0195
 ```
@@ -102,7 +102,7 @@ python reconstruct.py \
 --in_ids=${data_root}/data_splits/FashionMNIST_test.csv \
 --out_ids=${data_root}/data_splits/MNIST_test.csv,${data_root}/data_splits/FashionMNIST_vflip_test.csv,${data_root}/data_splits/FashionMNIST_hflip_test.csv \
 --is_grayscale=1 \
---beta_schedule=scaled_linear \
+--beta_schedule=scaled_linear_beta \
 --beta_start=0.0015 \
 --beta_end=0.0195 \
 --num_inference_steps=100 \
